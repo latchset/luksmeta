@@ -19,18 +19,8 @@
 
 #pragma once
 
-#include <libcryptsetup.h>
+#include <stdint.h>
+#include <stddef.h>
 
-int
-luksmeta_init(struct crypt_device *cd);
-
-int
-luksmeta_get(struct crypt_device *cd, int slot,
-             uint8_t uuid[32], uint8_t *buf, size_t size);
-
-int
-luksmeta_set(struct crypt_device *cd, int slot,
-             const uint8_t uuid[32], const uint8_t *buf, size_t size);
-
-int
-luksmeta_del(struct crypt_device *cd, int slot);
+uint32_t
+crc32c(uint32_t crc, const void *buf, size_t len);
