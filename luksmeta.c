@@ -205,7 +205,7 @@ luksmeta_init(struct crypt_device *cd)
     int fd = -1;
     int r = 0;
 
-    fd = open_hole(cd, O_RDWR, &length);
+    fd = open_hole(cd, O_RDWR | O_SYNC, &length);
     if (fd < 0)
         return fd;
 
@@ -219,12 +219,6 @@ luksmeta_init(struct crypt_device *cd)
     lm.crc32c = htobe32(checksum(lm));
 
     r = writeall(fd, &lm, sizeof(lm));
-    if (r < 0) {
-        close(fd);
-        return r;
-    }
-
-    r = fsync(fd) == 0 ? 0 : -errno;
     close(fd);
     return r;
 }
@@ -330,7 +324,7 @@ luksmeta_set(struct crypt_device *cd, int slot,
         return -EBADSLT;
     s = &lm.slots[slot];
 
-    fd = read_header(cd, O_RDWR, &length, &lm);
+    fd = read_header(cd, O_RDWR | O_SYNC, &length, &lm);
     if (fd < 0)
         return fd;
 
@@ -379,7 +373,7 @@ luksmeta_del(struct crypt_device *cd, int slot)
     if (slot >= LUKS_NSLOTS)
         return -EBADSLT;
 
-    fd = read_header(cd, O_RDWR, &length, &lm);
+    fd = read_header(cd, O_RDWR | O_SYNC, &length, &lm);
     if (fd < 0)
         return fd;
 
@@ -395,15 +389,6 @@ luksmeta_del(struct crypt_device *cd, int slot)
         goto error;
 
     r = writeall(fd, &lm, sizeof(lm));
-    if (r < 0)
-        goto error;
-
-    r = fsync(fd) == 0 ? 0 : -errno;
-    if (r < 0)
-        goto error;
-
-    close(fd);
-    return 0;
 
 error:
     close(fd);
