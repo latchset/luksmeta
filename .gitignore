@@ -25,6 +25,7 @@ depcomp
 install-sh
 libtool
 ltmain.sh
+luksmeta.pc
 Makefile.in
 Makefile
 missing

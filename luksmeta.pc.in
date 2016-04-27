@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=${prefix}/include
+
+Name: LUKS Meta
+Description: Library for storing metadata in the LUKS header
+Version: @VERSION@
+Libs: -L${libdir} -lluksmeta
+Cflags: -I${includedir}

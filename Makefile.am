@@ -8,6 +8,9 @@ lib_LTLIBRARIES = libluksmeta.la
 libluksmeta_la_SOURCES = luksmeta.c
 libluksmeta_la_LIBADD = libcrc32c.la @cryptsetup_LIBS@
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = luksmeta.pc
+
 check_LTLIBRARIES = libtest.la
 libtest_la_SOURCES = test.c test.h
 
