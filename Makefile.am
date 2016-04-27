@@ -16,11 +16,11 @@ libtest_la_SOURCES = test.c test.h
 
 check_PROGRAMS = test-crc32c test-lm-assumptions test-lm-init test-lm-one test-lm-two test-lm-big
 test_crc32c_LDADD = libcrc32c.la
-test_lm_assumptions_LDADD = libluksmeta.la libtest.la @cryptsetup_LIBS@
-test_lm_init_LDADD = libluksmeta.la libtest.la @cryptsetup_LIBS@
-test_lm_one_LDADD = libluksmeta.la libtest.la @cryptsetup_LIBS@
-test_lm_two_LDADD = libluksmeta.la libtest.la @cryptsetup_LIBS@
-test_lm_big_LDADD = libluksmeta.la libtest.la @cryptsetup_LIBS@
+test_lm_assumptions_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
+test_lm_init_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
+test_lm_one_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
+test_lm_two_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
+test_lm_big_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 
 TESTS = $(check_PROGRAMS)
 
