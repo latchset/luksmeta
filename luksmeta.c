@@ -29,8 +29,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define align(n, up) ((n + (up ? 4095 : 0)) / 4096 * 4096)
-
+#define ALIGN(s, up) (((s) + (up ? 4095 : 0)) & ~4095ULL)
 #define LUKS_NSLOTS 8
 #define LM_VERSION 1
 
@@ -89,9 +88,9 @@ overlap(const lm_t *lm, uint32_t start, size_t end)
 static inline uint32_t
 find_gap(const lm_t *lm, uint32_t length, size_t size)
 {
-    size = align(size, true);
+    size = ALIGN(size, true);
 
-    for (uint32_t off = align(1, true); off < length; off += align(1, true)) {
+    for (uint32_t off = ALIGN(1, true); off < length; off += ALIGN(1, true)) {
         if (!overlap(lm, off, off + size))
             return off;
     }
@@ -176,7 +175,7 @@ open_hole(struct crypt_device *cd, int flags, uint32_t *length)
             return r;
 
         if (hole < off + len)
-            hole = align(off + len, true);
+            hole = ALIGN(off + len, true);
     }
 
     if (hole == 0)
@@ -198,7 +197,7 @@ open_hole(struct crypt_device *cd, int flags, uint32_t *length)
         return -errno;
     }
 
-    *length = align(data - hole, false);
+    *length = ALIGN(data - hole, false);
     return fd;
 }
 
@@ -236,7 +235,7 @@ read_header(struct crypt_device *cd, int flags, uint32_t *length, lm_t *lm)
 
     lm->version = be32toh(lm->version);
 
-    maxlen = *length - align(sizeof(lm_t), true);
+    maxlen = *length - ALIGN(sizeof(lm_t), true);
     for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
         lm_slot_t *s = &lm->slots[slot];
 
@@ -288,7 +287,7 @@ luksmeta_init(struct crypt_device *cd)
     if (fd < 0)
         return fd;
 
-    if (length < align(sizeof(lm_t), true)) {
+    if (length < ALIGN(sizeof(lm_t), true)) {
         close(fd);
         return -ENOSPC;
     }
@@ -370,7 +369,7 @@ luksmeta_set(struct crypt_device *cd, int slot,
         goto error;
 
     s->offset = find_gap(&lm, length, size);
-    r = s->offset >= align(sizeof(lm), true) ? 0 : -ENOSPC;
+    r = s->offset >= ALIGN(sizeof(lm), true) ? 0 : -ENOSPC;
     if (r < 0)
         goto error;
 
