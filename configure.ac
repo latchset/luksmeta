@@ -10,7 +10,7 @@ AM_PROG_CC_C_O
 LT_INIT([disable-static])
 
 PKG_PROG_PKG_CONFIG([0.25])
-PKG_CHECK_MODULES([cryptsetup], [libcryptsetup])
+PKG_CHECK_MODULES([cryptsetup], [libcryptsetup >= 1.5.1])
 
 LUKSMETA_CFLAGS="\
 -Wall \
