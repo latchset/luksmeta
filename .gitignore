@@ -29,5 +29,5 @@ Makefile.in
 Makefile
 missing
 tags
-test-crc32c
-test-driver
+test-*
+vgcore.*

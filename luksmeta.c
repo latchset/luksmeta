@@ -33,7 +33,7 @@
 
 #define LUKS_NSLOTS 8
 #define UUID_LEN 32
-#define LM_VERSION htobe32(1)
+#define LM_VERSION 1
 
 static const uint8_t LM_MAGIC[] = { 'L', 'U', 'K', 'S', 'M', 'E', 'T', 'A' };
 
@@ -68,6 +68,49 @@ checksum(lm_t lm)
 {
     lm.crc32c = 0;
     return crc32c(0, &lm, sizeof(lm_t));
+}
+
+static inline bool
+overlap(const lm_t *lm, uint32_t start, size_t end)
+{
+    for (int i = 0; i < LUKS_NSLOTS; i++) {
+        const lm_slot_t *s = &lm->slots[i];
+        uint32_t e = s->offset + s->length;
+
+        if (start <= s->offset && s->offset < end)
+            return true;
+
+        if (start < e && e <= end)
+            return true;
+    }
+
+    return false;
+}
+
+static inline uint32_t
+find_gap(const lm_t *lm, uint32_t length, size_t size)
+{
+    size = align(size, true);
+
+    for (uint32_t off = align(1, true); off < length; off += align(1, true)) {
+        if (!overlap(lm, off, off + size))
+            return off;
+    }
+
+    return 0;
+}
+
+static int
+find_unused_slot(struct crypt_device *cd)
+{
+    for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
+        switch (crypt_keyslot_status(cd, slot)) {
+        case CRYPT_SLOT_INACTIVE: return slot;
+        default: continue;
+        }
+    }
+
+    return -1;
 }
 
 static inline ssize_t
@@ -121,9 +164,9 @@ open_hole(struct crypt_device *cd, int flags, uint32_t *length)
     if (!type || strcmp(CRYPT_LUKS1, type) != 0)
         return -ENOTSUP;
 
-    data = crypt_get_data_offset(cd);
-    if (data == 0)
-        return -ENOTSUP; /* We don't support detatched headers */
+    data = crypt_get_data_offset(cd) * 512;
+    if (data < 4096)
+        return -ENOSPC;
 
     for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
         uint64_t off = 0;
@@ -163,6 +206,7 @@ open_hole(struct crypt_device *cd, int flags, uint32_t *length)
 static int
 read_header(struct crypt_device *cd, int flags, uint32_t *length, lm_t *lm)
 {
+    uint32_t maxlen;
     int fd = -1;
     int r = 0;
 
@@ -182,13 +226,35 @@ read_header(struct crypt_device *cd, int flags, uint32_t *length, lm_t *lm)
     if (r < 0)
         goto error;
 
-    r = lm->version == LM_VERSION ? 0 : -ENOTSUP;
+    r = lm->version == htobe32(LM_VERSION) ? 0 : -ENOTSUP;
     if (r < 0)
         goto error;
 
-    r = checksum(*lm) == be32toh(lm->crc32c) ? 0 : -EINVAL;
+    lm->crc32c = be32toh(lm->crc32c);
+    r = checksum(*lm) == lm->crc32c ? 0 : -EINVAL;
     if (r < 0)
         goto error;
+
+    lm->version = be32toh(lm->version);
+
+    maxlen = *length - align(sizeof(lm_t), true);
+    for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
+        lm_slot_t *s = &lm->slots[slot];
+
+        s->offset = be32toh(s->offset);
+        s->length = be32toh(s->length);
+        s->crc32c = be32toh(s->crc32c);
+
+        if (!uuid_is_zero(s->uuid)) {
+            r = s->offset > sizeof(lm_t) ? 0 : -EINVAL;
+            if (r < 0)
+                goto error;
+
+            r = s->length <= maxlen ? 0 : -EINVAL;
+            if (r < 0)
+                goto error;
+        }
+    }
 
     return fd;
 
@@ -197,11 +263,25 @@ error:
     return r;
 }
 
+static int
+write_header(int fd, lm_t lm)
+{
+    for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
+        lm.slots[slot].offset = htobe32(lm.slots[slot].offset);
+        lm.slots[slot].length = htobe32(lm.slots[slot].length);
+        lm.slots[slot].crc32c = htobe32(lm.slots[slot].crc32c);
+    }
+
+    memcpy(lm.magic, LM_MAGIC, sizeof(LM_MAGIC));
+    lm.version = htobe32(LM_VERSION);
+    lm.crc32c = htobe32(checksum(lm));
+    return writeall(fd, &lm, sizeof(lm));
+}
+
 int
 luksmeta_init(struct crypt_device *cd)
 {
     uint32_t length = 0;
-    lm_t lm = {};
     int fd = -1;
     int r = 0;
 
@@ -214,11 +294,7 @@ luksmeta_init(struct crypt_device *cd)
         return -ENOSPC;
     }
 
-    memcpy(lm.magic, LM_MAGIC, sizeof(LM_MAGIC));
-    lm.version = LM_VERSION;
-    lm.crc32c = htobe32(checksum(lm));
-
-    r = writeall(fd, &lm, sizeof(lm));
+    r = write_header(fd, (lm_t) {});
     close(fd);
     return r;
 }
@@ -233,26 +309,17 @@ luksmeta_get(struct crypt_device *cd, int slot,
     int fd = -1;
     int r = 0;
 
-    if (slot >= LUKS_NSLOTS)
+    if (slot < 0 || slot >= LUKS_NSLOTS)
         return -EBADSLT;
+    s = &lm.slots[slot];
 
     fd = read_header(cd, O_RDONLY, &length, &lm);
     if (fd < 0)
         return fd;
 
-    r = uuid_is_zero(lm.slots[slot].uuid) ? -EBADSLT : 0;
+    r = uuid_is_zero(s->uuid) ? -EBADSLT : 0;
     if (r < 0)
         goto error;
-
-    s = &lm.slots[slot];
-    s->offset = be32toh(s->offset);
-    s->length = be32toh(s->length);
-    s->crc32c = be32toh(s->crc32c);
-
-    if (s->offset < align(sizeof(lm), true) || s->offset + s->length > length) {
-        r = -EINVAL;
-        goto error;
-    }
 
     if (buf && size >= s->length) {
         r = lseek(fd, s->offset - sizeof(lm), SEEK_CUR) == -1 ? -errno : 0;
@@ -277,39 +344,6 @@ error:
     return r;
 }
 
-static inline bool
-overlap(const lm_t *lm, int skip, uint32_t start, size_t end)
-{
-    for (int i = 0; i < LUKS_NSLOTS; i++) {
-        uint32_t s = be32toh(lm->slots[i].offset);
-        uint32_t e = s + be32toh(lm->slots[i].length);
-
-        if (i == skip)
-            continue;
-
-        if (start <= s && s < end)
-            return true;
-
-        if (start < e && e <= end)
-            return true;
-    }
-
-    return false;
-}
-
-static inline uint32_t
-find_gap(const lm_t *lm, uint32_t length, int skip, size_t size)
-{
-    size = align(size, true);
-
-    for (uint32_t off = align(1, true); off < length; off += align(1, true)) {
-        if (!overlap(lm, skip, off, off + size))
-            return off;
-    }
-
-    return 0;
-}
-
 int
 luksmeta_set(struct crypt_device *cd, int slot,
              const uint8_t uuid[UUID_LEN], const uint8_t *buf, size_t size)
@@ -319,8 +353,12 @@ luksmeta_set(struct crypt_device *cd, int slot,
     lm_t lm = {};
     int fd = -1;
     int r = 0;
+    off_t off;
 
-    if (slot >= LUKS_NSLOTS)
+    if (slot < 0)
+        slot = find_unused_slot(cd);
+
+    if (slot < 0 || slot >= LUKS_NSLOTS)
         return -EBADSLT;
     s = &lm.slots[slot];
 
@@ -332,7 +370,7 @@ luksmeta_set(struct crypt_device *cd, int slot,
     if (r < 0)
         goto error;
 
-    s->offset = find_gap(&lm, slot, length, size);
+    s->offset = find_gap(&lm, length, size);
     r = s->offset >= align(sizeof(lm), true) ? 0 : -ENOSPC;
     if (r < 0)
         goto error;
@@ -341,7 +379,8 @@ luksmeta_set(struct crypt_device *cd, int slot,
     s->length = size;
     s->crc32c = crc32c(0, buf, size);
 
-    r = lseek(fd, s->offset - sizeof(lm), SEEK_CUR) == -1 ? -errno : 0;
+    off = s->offset - sizeof(lm);
+    r = lseek(fd, off, SEEK_CUR) == -1 ? -errno : 0;
     if (r < 0)
         goto error;
 
@@ -349,49 +388,65 @@ luksmeta_set(struct crypt_device *cd, int slot,
     if (r < 0)
         goto error;
 
-    r = lseek(fd, -(s->offset + s->length), SEEK_CUR) == -1 ? -errno : 0;
+    off = s->offset + s->length;
+    r = lseek(fd, -off, SEEK_CUR) == -1 ? -errno : 0;
     if (r < 0)
         goto error;
 
-    r = writeall(fd, &lm, sizeof(lm));
-    if (r < 0)
-        goto error;
+    r = write_header(fd, lm);
 
 error:
     close(fd);
-    return r < 0 ? r : (int) size;
+    return r < 0 ? r : slot;
 }
 
 int
 luksmeta_del(struct crypt_device *cd, int slot)
 {
+    uint8_t *zero = NULL;
     uint32_t length = 0;
+    lm_slot_t *s = NULL;
     lm_t lm = {};
     int fd = -1;
     int r = 0;
+    off_t off;
 
-    if (slot >= LUKS_NSLOTS)
+    if (slot < 0 || slot >= LUKS_NSLOTS)
         return -EBADSLT;
+    s = &lm.slots[slot];
 
     fd = read_header(cd, O_RDWR | O_SYNC, &length, &lm);
     if (fd < 0)
         return fd;
 
-    r = uuid_is_zero(lm.slots[slot].uuid) ? -EBADSLT : 0;
+    r = uuid_is_zero(s->uuid) ? -EBADSLT : 0;
     if (r < 0)
         goto error;
 
-    memset(&lm.slots[slot], 0, sizeof(lm_slot_t));
-    lm.crc32c = htobe32(checksum(lm));
-
-    r = lseek(fd, -(off_t) sizeof(lm_t), SEEK_CUR) == -1 ? -errno : 0;
+    off = s->offset - sizeof(lm_t);
+    r = lseek(fd, off, SEEK_CUR) == -1 ? -errno : 0;
     if (r < 0)
         goto error;
 
-    r = writeall(fd, &lm, sizeof(lm));
+    r = (zero = calloc(1, s->length)) ? 0 : -errno;
+    if (r < 0)
+        goto error;
+
+    r = writeall(fd, zero, s->length);
+    free(zero);
+    if (r < 0)
+        goto error;
+
+    off = s->offset + s->length;
+    r = lseek(fd, -off, SEEK_CUR) == -1 ? -errno : 0;
+    if (r < 0)
+        goto error;
+
+    memset(s, 0, sizeof(lm_slot_t));
+    r = write_header(fd, lm);
 
 error:
     close(fd);
-    return r;
+    return r < 0 ? r : 0;
 }
 

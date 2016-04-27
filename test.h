@@ -17,13 +17,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crc32c.h"
+#include "luksmeta.h"
+#include <stdbool.h>
 
-#include <stdio.h>
+#include <assert.h> /* All tests need assert() */
+#include <unistd.h> /* All tests need unlink() */
 
-int
-main(int argc, char *argv[])
-{
-    char test[] = { '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-    return crc32c(0, test, sizeof(test)) == 0xe3069283 ? 0 : 1;
-}
+#define FILESIZE 4194304
+#define END(s) { (s), FILESIZE - (s), true }, { 0, 0 }
+#define ALIGN(s, up) (((s) + (up ? 4095 : 0)) & ~4095ULL)
+
+typedef struct {
+    size_t start;
+    size_t length;
+    bool zero;
+} range_t;
+
+extern char filename[];
+
+bool
+test_layout(range_t *ranges);
+
+void
+test_hole(struct crypt_device *cd, uint32_t *offset, uint32_t *length);
+
+struct crypt_device *
+test_format(void);
+
+struct crypt_device *
+test_init(void);
+

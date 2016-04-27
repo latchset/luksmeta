@@ -17,13 +17,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crc32c.h"
-
-#include <stdio.h>
+#include "test.h"
+#include <assert.h>
 
 int
 main(int argc, char *argv[])
 {
-    char test[] = { '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-    return crc32c(0, test, sizeof(test)) == 0xe3069283 ? 0 : 1;
+    crypt_free(test_format());
+
+    /* Test the layout state. */
+    assert(test_layout((range_t[]) {
+        { 0, 1024 },                    /* LUKS header */
+        END(1024),                    /* Rest of the file */
+    }));
+
+    unlink(filename);
+    return 0;
 }
+
