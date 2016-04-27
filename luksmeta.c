@@ -32,13 +32,12 @@
 #define align(n, up) ((n + (up ? 4095 : 0)) / 4096 * 4096)
 
 #define LUKS_NSLOTS 8
-#define UUID_LEN 32
 #define LM_VERSION 1
 
 static const uint8_t LM_MAGIC[] = { 'L', 'U', 'K', 'S', 'M', 'E', 'T', 'A' };
 
 typedef struct __attribute__((packed)) {
-    uint8_t uuid[UUID_LEN];
+    luksmeta_uuid_t uuid;
     uint32_t offset;   /* Bytes from the start of the hole */
     uint32_t length;   /* Bytes */
     uint32_t crc32c;
@@ -53,9 +52,9 @@ typedef struct __attribute__((packed)) {
 } lm_t;
 
 static bool
-uuid_is_zero(uint8_t uuid[UUID_LEN])
+uuid_is_zero(luksmeta_uuid_t uuid)
 {
-    for (size_t i = 0; i < UUID_LEN; i++) {
+    for (size_t i = 0; i < sizeof(luksmeta_uuid_t); i++) {
         if (uuid[i] != 0)
             return false;
     }
@@ -301,7 +300,7 @@ luksmeta_init(struct crypt_device *cd)
 
 int
 luksmeta_get(struct crypt_device *cd, int slot,
-             uint8_t uuid[UUID_LEN], uint8_t *buf, size_t size)
+             luksmeta_uuid_t uuid, uint8_t *buf, size_t size)
 {
     uint32_t length = 0;
     lm_slot_t *s = NULL;
@@ -335,7 +334,7 @@ luksmeta_get(struct crypt_device *cd, int slot,
             goto error;
     }
 
-    memcpy(uuid, s->uuid, UUID_LEN);
+    memcpy(uuid, s->uuid, sizeof(luksmeta_uuid_t));
     close(fd);
     return s->length;
 
@@ -346,7 +345,7 @@ error:
 
 int
 luksmeta_set(struct crypt_device *cd, int slot,
-             const uint8_t uuid[UUID_LEN], const uint8_t *buf, size_t size)
+             const luksmeta_uuid_t uuid, const uint8_t *buf, size_t size)
 {
     uint32_t length = 0;
     lm_slot_t *s = NULL;
@@ -375,7 +374,7 @@ luksmeta_set(struct crypt_device *cd, int slot,
     if (r < 0)
         goto error;
 
-    memcpy(s->uuid, uuid, UUID_LEN);
+    memcpy(s->uuid, uuid, sizeof(luksmeta_uuid_t));
     s->length = size;
     s->crc32c = crc32c(0, buf, size);
 
