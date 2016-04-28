@@ -16,3 +16,14 @@ addons:
   apt:
     packages:
       - libcryptsetup-dev
+  coverity_scan:
+    project:
+      name: "latchset/luksmeta"
+      description: "LUKSMeta builds via Travis CI"
+    notification_email: npmccallum@redhat.com
+    build_command_prepend: "./configure; make clean"
+    build_command:   "make -j 4"
+    branch_pattern: coverity_scan
+env:
+  global:
+    - secure: "ehbWCKZW2ObWNXo4w1XvrrKdChVEL/qHQwZNsLVzuI8z/aVau3tF1BLFgxoDJmyO8iVM1nLDEbZ7NChVpggqpYVXX/Jq7zo1S77q6mXvv6MPFVfokukgsnXrkxUJtJVE0rs47Xu8lDT454pKjTaG2zbaEuBNOaMmohVWWIwAxGcNAEtUGIxir0chma1x5wmpXLNQ3UO6+SoqAh0OD9hPFxEaMD+3eNCemmgkrTknqduOU8hntdskT05u0uH50TLSxMWhOwDcqkub2zc2g0E4WWtFXyqdJS6mQv6nYO5l2JiM0rIKzGA7ST2dyKmN/iV3lT+g/PsMhzRE19NT3gqXlWjLEu7ufCoLRqJkthTwfdKfB1o5uwPttin89ZTtkRgthWkVwRtKh+4jL7FWsbip1RcMJURBs1A0e6/AX1EQ9UmdrKLddKwrBy9j2hVX65Fq6rmznZ5QLPJgZKYtUC8qA7L39C0PyJQThoeqSa8JpozSl+l4YSC8c/5E8s2MuiLdX1kuSyFXqgZPGbTt0TLlMsG7FINnvmzYwSO24EsUqmjTz+FfOHpGu/3Jpt23bjZ0iunSB0pQ3jgqnJ9HZRq+4BzqesqXtD9mcfEAwHcPTsj0kRGEoptDT+MlZZ9Dpi/lFghnglIbkpyL95u6t21s8Q9OQ0GhiZpEuMnYimxklMo="
