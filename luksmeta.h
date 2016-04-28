@@ -76,6 +76,7 @@ luksmeta_get(struct crypt_device *cd, int slot,
  *
  * @note This function returns -ENOENT if the device has no luksmeta header.
  * @note This function returns -EINVAL if the header is corrupted.
+ * @note This function returns -EKEYREJECTED if the uuid is invalid/reserved.
  * @note This function returns -EBADSLT if the specified slot is not empty.
  * @note This function returns -ENOSPC if there is insufficient space.
  */

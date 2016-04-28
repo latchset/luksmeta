@@ -51,7 +51,7 @@ typedef struct __attribute__((packed)) {
 } lm_t;
 
 static bool
-uuid_is_zero(luksmeta_uuid_t uuid)
+uuid_is_zero(const luksmeta_uuid_t uuid)
 {
     for (size_t i = 0; i < sizeof(luksmeta_uuid_t); i++) {
         if (uuid[i] != 0)
@@ -360,6 +360,9 @@ luksmeta_set(struct crypt_device *cd, int slot,
     int fd = -1;
     int r = 0;
     off_t off;
+
+    if (uuid_is_zero(uuid))
+        return -EKEYREJECTED;
 
     if (slot < 0)
         slot = find_unused_slot(cd);
