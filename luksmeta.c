@@ -323,7 +323,7 @@ luksmeta_get(struct crypt_device *cd, int slot,
     if (fd < 0)
         return fd;
 
-    r = uuid_is_zero(s->uuid) ? -EBADSLT : 0;
+    r = uuid_is_zero(s->uuid) ? -ENODATA : 0;
     if (r < 0)
         goto error;
 
@@ -364,7 +364,7 @@ luksmeta_set(struct crypt_device *cd, int slot,
     if (uuid_is_zero(uuid))
         return -EKEYREJECTED;
 
-    if (slot < 0)
+    if (slot == CRYPT_ANY_SLOT)
         slot = find_unused_slot(cd);
 
     if (slot < 0 || slot >= LUKS_NSLOTS)
@@ -375,7 +375,7 @@ luksmeta_set(struct crypt_device *cd, int slot,
     if (fd < 0)
         return fd;
 
-    r = uuid_is_zero(s->uuid) ? 0 : -EBADSLT;
+    r = uuid_is_zero(s->uuid) ? 0 : -EALREADY;
     if (r < 0)
         goto error;
 
@@ -428,7 +428,7 @@ luksmeta_del(struct crypt_device *cd, int slot)
     if (fd < 0)
         return fd;
 
-    r = uuid_is_zero(s->uuid) ? -EBADSLT : 0;
+    r = uuid_is_zero(s->uuid) ? -EALREADY : 0;
     if (r < 0)
         goto error;
 

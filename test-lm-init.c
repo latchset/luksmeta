@@ -54,10 +54,10 @@ main(int argc, char *argv[])
         END(offset + 4096),            /* Rest of the file */
     }));
 
-    /* Test for -EBADSLT when there is a luksmeta header but no slot. */
+    /* Test error codes for a valid luksmeta header but no slot. */
     for (int slot = 0; slot < crypt_keyslot_max(CRYPT_LUKS1); slot++) {
-        assert(luksmeta_get(cd, slot, uuid, data, sizeof(data)) == -EBADSLT);
-        assert(luksmeta_del(cd, slot) == -EBADSLT);
+        assert(luksmeta_get(cd, slot, uuid, data, sizeof(data)) == -ENODATA);
+        assert(luksmeta_del(cd, slot) == -EALREADY);
     }
 
     /* Test for -EALREADY when a valid header is present. */

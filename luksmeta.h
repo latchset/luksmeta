@@ -54,7 +54,8 @@ luksmeta_init(struct crypt_device *cd);
  *
  * @note This function returns -ENOENT if the device has no luksmeta header.
  * @note This function returns -EINVAL if the header or slot data is corrupted.
- * @note This function returns -EBADSLT if the specified slot is empty.
+ * @note This function returns -EBADSLT if the specified slot is invalid.
+ * @note This function returns -ENODATA if the specified slot is empty.
  */
 #if defined(__GNUC__)
 int __attribute__((nonnull(1, 3), warn_unused_result))
@@ -76,8 +77,9 @@ luksmeta_get(struct crypt_device *cd, int slot,
  *
  * @note This function returns -ENOENT if the device has no luksmeta header.
  * @note This function returns -EINVAL if the header is corrupted.
+ * @note This function returns -EBADSLT if the specified slot is invalid.
  * @note This function returns -EKEYREJECTED if the uuid is invalid/reserved.
- * @note This function returns -EBADSLT if the specified slot is not empty.
+ * @note This function returns -EALREADY if the specified slot is not empty.
  * @note This function returns -ENOSPC if there is insufficient space.
  */
 #if defined(__GNUC__)
@@ -97,7 +99,8 @@ luksmeta_set(struct crypt_device *cd, int slot,
  *
  * @note This function returns -ENOENT if the device has no luksmeta header.
  * @note This function returns -EINVAL if the header is corrupted.
- * @note This function returns -EBADSLT if the specified slot is empty.
+ * @note This function returns -EBADSLT if the specified slot is invalid.
+ * @note This function returns -EALREADY if the specified slot is empty.
  */
 #if defined(__GNUC__)
 int __attribute__((nonnull(1)))
