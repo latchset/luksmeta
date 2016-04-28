@@ -60,6 +60,9 @@ main(int argc, char *argv[])
         assert(luksmeta_del(cd, slot) == -EBADSLT);
     }
 
+    /* Test for -EALREADY when a valid header is present. */
+    assert(luksmeta_init(cd) == -EALREADY);
+
     crypt_free(cd);
     unlink(filename);
     return 0;

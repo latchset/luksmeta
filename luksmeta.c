@@ -283,6 +283,14 @@ luksmeta_init(struct crypt_device *cd)
     int fd = -1;
     int r = 0;
 
+    fd = read_header(cd, O_RDONLY, &length, &(lm_t) {});
+    if (fd >= 0) {
+        close(fd);
+        return -EALREADY;
+    } else if (fd != -ENOENT && fd != -EINVAL) {
+        return fd;
+    }
+
     fd = open_hole(cd, O_RDWR | O_SYNC, &length);
     if (fd < 0)
         return fd;
