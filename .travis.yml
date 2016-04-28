@@ -2,9 +2,11 @@ language: c
 before_script:
   - autoreconf -if
 script:
-  - ./configure --prefix=/usr
+  - CFLAGS=-coverage LDFLAGS=-lgcov ./configure --prefix=/usr
   - make -k check TESTS=
   - if ! sudo make check; then cat ./test-suite.log ; exit 1; fi
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 compiler:
   - clang
   - gcc
