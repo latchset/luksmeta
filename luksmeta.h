@@ -21,6 +21,10 @@
 
 #include <libcryptsetup.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint8_t luksmeta_uuid_t[16];
 
 /**
@@ -115,3 +119,7 @@ int __attribute__((nonnull(1)))
 int
 #endif
 luksmeta_del(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid);
+
+#ifdef __cplusplus
+}
+#endif
