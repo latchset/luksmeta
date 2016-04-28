@@ -123,7 +123,7 @@ main(int argc, char *argv[])
     assert(memcmp(data, DATA, sizeof(DATA)) == 0);
 
     /* Delete the data. */
-    assert(luksmeta_del(cd, r) == 0);
+    assert(luksmeta_del(cd, r, UUID) == 0);
 
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */

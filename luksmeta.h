@@ -95,13 +95,18 @@ luksmeta_set(struct crypt_device *cd, int slot,
 /**
  * Deletes metadata from the specified slot
  *
+ * If uuid is not NULL, this function will confirm that the specified slot
+ * has a matching UUID before deletion.
+ *
  * @param cd crypt device handle
  * @param slot requested metadata slot
+ * @param uuid expected UUID (optional)
  * @return Zero on success or negative errno value otherwise.
  *
  * @note This function returns -ENOENT if the device has no luksmeta header.
  * @note This function returns -EINVAL if the header is corrupted.
  * @note This function returns -EBADSLT if the specified slot is invalid.
+ * @note This function returns -EKEYREJECTED if the uuid doesn't match.
  * @note This function returns -EALREADY if the specified slot is empty.
  */
 #if defined(__GNUC__)
@@ -109,4 +114,4 @@ int __attribute__((nonnull(1)))
 #else
 int
 #endif
-luksmeta_del(struct crypt_device *cd, int slot);
+luksmeta_del(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid);

@@ -46,7 +46,7 @@ main(int argc, char *argv[])
     for (int slot = 0; slot < crypt_keyslot_max(CRYPT_LUKS1); slot++) {
         assert(luksmeta_set(cd, slot, UUID, UUID, sizeof(UUID)) == -ENOENT);
         assert(luksmeta_get(cd, slot, uuid, data, sizeof(data)) == -ENOENT);
-        assert(luksmeta_del(cd, slot) == -ENOENT);
+        assert(luksmeta_del(cd, slot, UUID) == -ENOENT);
     }
     crypt_free(cd);
 
@@ -64,7 +64,7 @@ main(int argc, char *argv[])
     /* Test error codes for a valid luksmeta header but no slot. */
     for (int slot = 0; slot < crypt_keyslot_max(CRYPT_LUKS1); slot++) {
         assert(luksmeta_get(cd, slot, uuid, data, sizeof(data)) == -ENODATA);
-        assert(luksmeta_del(cd, slot) == -EALREADY);
+        assert(luksmeta_del(cd, slot, UUID) == -EALREADY);
     }
 
     /* Test for -EALREADY when a valid header is present. */
@@ -73,12 +73,12 @@ main(int argc, char *argv[])
     /* Test for -EBADSLT when an invalid slot is used. */
     assert(luksmeta_set(cd, 10, UUID, UUID, sizeof(UUID)) == -EBADSLT);
     assert(luksmeta_get(cd, 10, uuid, data, sizeof(data)) == -EBADSLT);
-    assert(luksmeta_del(cd, 10) == -EBADSLT);
+    assert(luksmeta_del(cd, 10, UUID) == -EBADSLT);
     assert(luksmeta_set(cd, -10, UUID, UUID, sizeof(UUID)) == -EBADSLT);
     assert(luksmeta_get(cd, -10, uuid, data, sizeof(data)) == -EBADSLT);
-    assert(luksmeta_del(cd, -10) == -EBADSLT);
+    assert(luksmeta_del(cd, -10, UUID) == -EBADSLT);
     assert(luksmeta_get(cd, -1, uuid, data, sizeof(data)) == -EBADSLT);
-    assert(luksmeta_del(cd, -1) == -EBADSLT);
+    assert(luksmeta_del(cd, -1, UUID) == -EBADSLT);
 
     /* Test for -EKEYREJECTED when a reserved UUID is used. */
     assert(luksmeta_set(cd, CRYPT_ANY_SLOT, (luksmeta_uuid_t) {},
@@ -95,7 +95,7 @@ main(int argc, char *argv[])
     close(fd);
     assert(luksmeta_set(cd, 2, UUID, UUID, sizeof(UUID)) == -EINVAL);
     assert(luksmeta_get(cd, 2, uuid, data, sizeof(data)) == -EINVAL);
-    assert(luksmeta_del(cd, 2) == -EINVAL);
+    assert(luksmeta_del(cd, 2, UUID) == -EINVAL);
 
     crypt_free(cd);
     unlink(filename);

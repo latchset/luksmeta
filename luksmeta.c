@@ -410,7 +410,7 @@ error:
 }
 
 int
-luksmeta_del(struct crypt_device *cd, int slot)
+luksmeta_del(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid)
 {
     uint8_t *zero = NULL;
     uint32_t length = 0;
@@ -431,6 +431,11 @@ luksmeta_del(struct crypt_device *cd, int slot)
     r = uuid_is_zero(s->uuid) ? -EALREADY : 0;
     if (r < 0)
         goto error;
+
+    if (uuid && memcmp(uuid, s->uuid, sizeof(luksmeta_uuid_t)) != 0) {
+        r = -EKEYREJECTED;
+        goto error;
+    }
 
     off = s->offset - sizeof(lm_t);
     r = lseek(fd, off, SEEK_CUR) == -1 ? -errno : 0;

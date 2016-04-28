@@ -85,7 +85,7 @@ main(int argc, char *argv[])
     assert(memcmp(data, UUID1, sizeof(UUID1)) == 0);
 
     /* Delete the first metadata. */
-    assert(luksmeta_del(cd, 0) == 0);
+    assert(luksmeta_del(cd, 0, UUID0) == 0);
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
         { 1024, offset - 1024, true }, /* Keyslot Area */
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
     }));
 
     /* Delete the second metadata. */
-    assert(luksmeta_del(cd, 1) == 0);
+    assert(luksmeta_del(cd, 1, UUID1) == 0);
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
         { 1024, offset - 1024, true }, /* Keyslot Area */

@@ -59,7 +59,11 @@ main(int argc, char *argv[])
     assert(memcmp(uuid, UUID, sizeof(UUID)) == 0);
     assert(memcmp(data, UUID, sizeof(UUID)) == 0);
     assert(luksmeta_set(cd, r, UUID, UUID, sizeof(UUID)) == -EALREADY);
-    assert(luksmeta_del(cd, r) == 0);
+    assert(luksmeta_del(cd, r, (luksmeta_uuid_t) {}) == -EKEYREJECTED);
+    assert(luksmeta_del(cd, r, (luksmeta_uuid_t) { 1 }) == -EKEYREJECTED);
+    assert(luksmeta_del(cd, r, UUID) == 0);
+    assert(luksmeta_del(cd, r, UUID) == -EALREADY);
+    assert(luksmeta_del(cd, r, (luksmeta_uuid_t) {}) == -EALREADY);
 
     /* Test the layout state. */
     assert(test_layout((range_t[]) {
