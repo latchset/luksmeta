@@ -68,12 +68,14 @@ luksmeta_get(struct crypt_device *cd, int slot,
 /**
  * Sets metadata to the specified slot
  *
+ * The slot parameter may be CRYPT_ANY_SLOT.
+ *
  * @param cd crypt device handle
  * @param slot requested metadata slot
  * @param uuid UUID of the metadata
  * @param buf input buffer for metadata
  * @param size size of buf
- * @return The number of bytes in the metadata or negative errno value.
+ * @return The slot number to which data was written or negative errno value.
  *
  * @note This function returns -ENOENT if the device has no luksmeta header.
  * @note This function returns -EINVAL if the header is corrupted.
