@@ -19,6 +19,7 @@
 
 #include "test.h"
 #include <error.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -57,6 +58,7 @@ main(int argc, char *argv[])
     assert(luksmeta_get(cd, r, uuid, data, sizeof(data)) == sizeof(data));
     assert(memcmp(uuid, UUID, sizeof(UUID)) == 0);
     assert(memcmp(data, UUID, sizeof(UUID)) == 0);
+    assert(luksmeta_set(cd, r, UUID, UUID, sizeof(UUID)) == -EALREADY);
     assert(luksmeta_del(cd, r) == 0);
 
     /* Test the layout state. */
