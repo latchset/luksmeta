@@ -1,11 +1,11 @@
-[![License](http://img.shields.io/:license-gpl3-blue.svg?style=flat-square)](http://www.gnu.org/licenses/gpl-3.0.html)
+[![License](http://img.shields.io/:license-lgpl2-blue.svg?style=flat-square)](http://www.gnu.org/licenses/lgpl-2.1.html)
 [![Build Status](https://travis-ci.org/latchset/luksmeta.svg?branch=master)](https://travis-ci.org/latchset/luksmeta)
 [![Code Coverage](http://codecov.io/github/latchset/luksmeta/coverage.svg?branch=master)](http://codecov.io/github/latchset/luksmeta?branch=master)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/8706/badge.svg)](https://scan.coverity.com/projects/latchset-luksmeta)
 
 # LUKSMeta
 
-Welcome to LUKSMeta! LUKSMeta is a simple library for storing metadata in the LUKSv1 header. This library is licensed under the GNU GPLv3+.
+Welcome to LUKSMeta! LUKSMeta is a simple library for storing metadata in the LUKSv1 header. This library is licensed under the GNU LGPLv2+.
 
 ## Why LUKSMeta?
 
