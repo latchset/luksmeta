@@ -73,16 +73,16 @@ test_layout(range_t *ranges)
     for (size_t i = 0; ranges[i].length != 0; i++) {
         size_t nonzero;
 
-        fprintf(stderr, "%08lu:%08lu (%c= 0)\n",
+        fprintf(stderr, "%08zu:%08zu (%c= 0)\n",
                 ranges[i].start, ranges[i].start + ranges[i].length,
                 ranges[i].zero ? '=' : '!');
 
         nonzero = first_nonzero(file, ranges[i].start, ranges[i].length);
         if (ranges[i].zero && nonzero < ranges[i].length) {
-            fprintf(stderr, "unexpected nonzero: %ld\n", nonzero);
+            fprintf(stderr, "unexpected nonzero: %zu\n", nonzero);
             goto egress;
         } else if (!ranges[i].zero && nonzero == ranges[i].length) {
-            fprintf(stderr, "unexpected zero: %lu-%ld\n",
+            fprintf(stderr, "unexpected zero: %zu-%zu\n",
                     ranges[i].start, ranges[i].start + ranges[i].length);
             goto egress;
         }
