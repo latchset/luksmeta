@@ -42,8 +42,8 @@ luksmeta_init(struct crypt_device *cd);
 /**
  * Gets metadata from the specified slot
  *
- * If buf is NULL or size is smaller than the metadata, this function returns
- * the size of the buffer needed and the uuid.
+ * If buf is NULL, this function returns the size of the buffer needed and
+ * the uuid.
  *
  * @param cd crypt device handle
  * @param slot requested metadata slot
@@ -56,6 +56,7 @@ luksmeta_init(struct crypt_device *cd);
  * @note This function returns -EINVAL if the header or slot data is corrupted.
  * @note This function returns -EBADSLT if the specified slot is invalid.
  * @note This function returns -ENODATA if the specified slot is empty.
+ * @note This function returns -E2BIG if the output buffer is too small.
  */
 int
 luksmeta_get(struct crypt_device *cd, int slot,

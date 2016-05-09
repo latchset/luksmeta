@@ -327,7 +327,11 @@ luksmeta_get(struct crypt_device *cd, int slot,
     if (r < 0)
         goto error;
 
-    if (buf && size >= s->length) {
+    if (buf) {
+        r = size >= s->length ? 0 : -E2BIG;
+        if (r < 0)
+            goto error;
+
         r = lseek(fd, s->offset - sizeof(lm), SEEK_CUR) == -1 ? -errno : 0;
         if (r < 0)
             goto error;
