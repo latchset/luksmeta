@@ -36,11 +36,7 @@ typedef uint8_t luksmeta_uuid_t[16];
  * @note This function returns -EALREADY if a valid header already exists.
  * @note This function returns -ENOSPC if there is insufficient space.
  */
-#if defined(__GNUC__)
-int __attribute__((nonnull(1), warn_unused_result))
-#else
 int
-#endif
 luksmeta_init(struct crypt_device *cd);
 
 /**
@@ -61,11 +57,7 @@ luksmeta_init(struct crypt_device *cd);
  * @note This function returns -EBADSLT if the specified slot is invalid.
  * @note This function returns -ENODATA if the specified slot is empty.
  */
-#if defined(__GNUC__)
-int __attribute__((nonnull(1, 3), warn_unused_result))
-#else
 int
-#endif
 luksmeta_get(struct crypt_device *cd, int slot,
              luksmeta_uuid_t uuid, uint8_t *buf, size_t size);
 
@@ -88,11 +80,7 @@ luksmeta_get(struct crypt_device *cd, int slot,
  * @note This function returns -EALREADY if the specified slot is not empty.
  * @note This function returns -ENOSPC if there is insufficient space.
  */
-#if defined(__GNUC__)
-int __attribute__((nonnull(1, 3, 4), warn_unused_result))
-#else
 int
-#endif
 luksmeta_set(struct crypt_device *cd, int slot,
              const luksmeta_uuid_t uuid, const uint8_t *buf, size_t size);
 
@@ -113,11 +101,7 @@ luksmeta_set(struct crypt_device *cd, int slot,
  * @note This function returns -EKEYREJECTED if the uuid doesn't match.
  * @note This function returns -EALREADY if the specified slot is empty.
  */
-#if defined(__GNUC__)
-int __attribute__((nonnull(1)))
-#else
 int
-#endif
 luksmeta_del(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid);
 
 #ifdef __cplusplus
