@@ -17,450 +17,440 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crc32c.h"
 #include "luksmeta.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <errno.h>
-#include <fcntl.h>
+#include <getopt.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <sysexits.h>
 
-#define ALIGN(s, up) (((s) + (up ? 4095 : 0)) & ~4095ULL)
-#define LUKS_NSLOTS 8
-#define LM_VERSION 1
-
-static const uint8_t LM_MAGIC[] = { 'L', 'U', 'K', 'S', 'M', 'E', 'T', 'A' };
-
-typedef struct __attribute__((packed)) {
+struct options {
+    const char *device;
     luksmeta_uuid_t uuid;
-    uint32_t offset;   /* Bytes from the start of the hole */
-    uint32_t length;   /* Bytes */
-    uint32_t crc32c;
-    uint32_t _reserved; /* Reserved */
-} lm_slot_t;
+    bool have_uuid;
+    bool force;
+    int slot;
+};
 
-typedef struct __attribute__((packed)) {
-    uint8_t magic[sizeof(LM_MAGIC)];
-    uint32_t version;
-    uint32_t crc32c;
-    lm_slot_t slots[LUKS_NSLOTS];
-} lm_t;
-
-static bool
-uuid_is_zero(const luksmeta_uuid_t uuid)
+static int
+cmd_init(const struct options *opts, struct crypt_device *cd)
 {
-    for (size_t i = 0; i < sizeof(luksmeta_uuid_t); i++) {
-        if (uuid[i] != 0)
-            return false;
+    int r = 0;
+
+    if (!opts->force) {
+        char c = 'X';
+
+        fprintf(stderr,
+            "You are about to initialize a LUKS device for metadata storage.\n"
+            "Attempting to initialize it may result in data loss if data was\n"
+            "already written into the LUKS header gap in a different format.\n"
+            "A backup is advised before initialization is performed.\n\n");
+
+        while (!strchr("YyNn", c)) {
+            fprintf(stderr, "Do you wish to initialize %s? [yn] ",
+                    crypt_get_device_name(cd));
+            c = getc(stdin);
+        }
+
+        if (strchr("Nn", c))
+            return EX_NOPERM;
     }
 
-    return true;
-}
-
-static inline uint32_t
-checksum(lm_t lm)
-{
-    lm.crc32c = 0;
-    return crc32c(0, &lm, sizeof(lm_t));
-}
-
-static inline bool
-overlap(const lm_t *lm, uint32_t start, size_t end)
-{
-    for (int i = 0; i < LUKS_NSLOTS; i++) {
-        const lm_slot_t *s = &lm->slots[i];
-        uint32_t e = s->offset + s->length;
-
-        if (start <= s->offset && s->offset < end)
-            return true;
-
-        if (start < e && e <= end)
-            return true;
+    r = luksmeta_init(cd);
+    if (r < 0) {
+        fprintf(stderr, "Error while initializing device (%s): %s\n",
+                opts->device, strerror(-r));
+        return EX_IOERR;
     }
 
-    return false;
+    return EX_OK;
 }
 
-static inline uint32_t
-find_gap(const lm_t *lm, uint32_t length, size_t size)
+static const char *
+status(struct crypt_device *cd, int keyslot)
 {
-    size = ALIGN(size, true);
-
-    for (uint32_t off = ALIGN(1, true); off < length; off += ALIGN(1, true)) {
-        if (!overlap(lm, off, off + size))
-            return off;
+    switch (crypt_keyslot_status(cd, keyslot)) {
+    case CRYPT_SLOT_INVALID: return "invalid";
+    case CRYPT_SLOT_INACTIVE: return "inactive";
+    case CRYPT_SLOT_ACTIVE: return "active";
+    case CRYPT_SLOT_ACTIVE_LAST: return "active";
+    default: return "unknown";
     }
-
-    return 0;
 }
 
 static int
-find_unused_slot(struct crypt_device *cd)
+cmd_show(const struct options *opts, struct crypt_device *cd)
 {
-    for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
-        switch (crypt_keyslot_status(cd, slot)) {
-        case CRYPT_SLOT_INACTIVE: return slot;
-        default: continue;
+    luksmeta_uuid_t uuid = {};
+
+    for (int i = 0, r = 0; i < crypt_keyslot_max(CRYPT_LUKS1); i++) {
+        if (opts->slot >= 0 && i != opts->slot)
+            continue;
+
+        r = luksmeta_get(cd, i, uuid, NULL, 0);
+        switch (r) {
+        case -EBADSLT:
+            fprintf(stderr, "Invalid slot (%d)\n", opts->slot);
+            return EX_DATAERR;
+
+        case -ENOENT:
+            fprintf(stderr, "Device is not initialized (%s)\n",
+                    opts->device);
+            return EX_DATAERR;
+
+        case -EINVAL:
+            fprintf(stderr, "LUKSMeta data appears corrupt (%s)\n",
+                    opts->device);
+            return EX_DATAERR;
+
+        case -ENODATA:
+            if (opts->slot < 0)
+                fprintf(stdout, "%d %8s %s\n", i, status(cd, i), "empty");
+            break;
+
+        default:
+            if (r < 0) {
+                fprintf(stderr, "%d %8s %s\n",
+                        i, status(cd, i), "unknown error");
+            } else {
+                if (opts->slot < 0)
+                    fprintf(stdout, "%d %8s ", i, status(cd, i));
+
+                fprintf(stdout, "%x%x%x%x-%x%x-%x%x-%x%x-%x%x%x%x%x%x\n",
+                        uuid[0x0], uuid[0x1], uuid[0x2], uuid[0x3],
+                        uuid[0x4], uuid[0x5], uuid[0x6], uuid[0x7],
+                        uuid[0x8], uuid[0x9], uuid[0xa], uuid[0xb],
+                        uuid[0xc], uuid[0xd], uuid[0xe], uuid[0xf]);
+            }
+            break;
         }
     }
 
-    return -1;
-}
-
-static inline ssize_t
-readall(int fd, void *data, size_t size)
-{
-    uint8_t *tmp = data;
-
-    for (ssize_t r, t = 0; t < (ssize_t) size; t += r) {
-        r = read(fd, &tmp[t], size - t);
-        if (r < 0 && errno != EAGAIN)
-            return -errno;
-    }
-
-    return size;
-}
-
-static inline ssize_t
-writeall(int fd, const void *buf, size_t size)
-{
-    const uint8_t *tmp = buf;
-
-    for (ssize_t r, t = 0; t < (ssize_t) size; t += r) {
-        r = write(fd, &tmp[t], size - t);
-        if (r < 0 && errno != EAGAIN)
-            return -errno;
-    }
-
-    return size;
-}
-
-/**
- * Opens the device with the specified flags.
- *
- * The length parameter is set to the amount of space in the gap between the
- * end of the last slot and the start of the encrypted data.
- *
- * The function returns either the file descriptor positioned to the start of
- * the hole or a negative errno.
- */
-static int
-open_hole(struct crypt_device *cd, int flags, uint32_t *length)
-{
-    const char *name = NULL;
-    const char *type = NULL;
-    uint64_t hole = 0;
-    uint64_t data = 0;
-    int fd = 0;
-    int r = 0;
-
-    type = crypt_get_type(cd);
-    if (!type || strcmp(CRYPT_LUKS1, type) != 0)
-        return -ENOTSUP;
-
-    data = crypt_get_data_offset(cd) * 512;
-    if (data < 4096)
-        return -ENOSPC;
-
-    for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
-        uint64_t off = 0;
-        uint64_t len = 0;
-
-        r = crypt_keyslot_area(cd, slot, &off, &len);
-        if (r < 0)
-            return r;
-
-        if (hole < off + len)
-            hole = ALIGN(off + len, true);
-    }
-
-    if (hole == 0)
-        return -ENOTSUP;
-
-    if (hole >= data)
-        return -ENOSPC;
-
-    name = crypt_get_device_name(cd);
-    if (!name)
-        return -ENOTSUP;
-
-    fd = open(name, flags);
-    if (fd < 0)
-        return -errno;
-
-    if (lseek(fd, hole, SEEK_SET) == -1) {
-        close(fd);
-        return -errno;
-    }
-
-    *length = ALIGN(data - hole, false);
-    return fd;
+    return EX_OK;
 }
 
 static int
-read_header(struct crypt_device *cd, int flags, uint32_t *length, lm_t *lm)
+cmd_save(const struct options *opts, struct crypt_device *cd)
 {
-    uint32_t maxlen;
-    int fd = -1;
+    uint8_t *in = NULL;
+    size_t inl = 0;
     int r = 0;
 
-    fd = open_hole(cd, flags, length);
-    if (fd < 0)
-        return fd;
+    if (!opts->have_uuid) {
+        fprintf(stderr, "UUID required\n");
+        return EX_DATAERR;
+    }
 
-    r = *length >= sizeof(lm_t) ? 0 : -ENOENT;
-    if (r < 0)
-        goto error;
+    while (!feof(stdin)) {
+        uint8_t *tmp = NULL;
 
-    r = readall(fd, lm, sizeof(lm_t));
-    if (r < 0)
-        goto error;
+        tmp = realloc(in, inl + 4096);
+        if (!tmp) {
+            fprintf(stderr, "Out of memory\n");
+            free(in);
+            return EX_OSERR;
+        }
 
-    r = memcmp(LM_MAGIC, lm->magic, sizeof(LM_MAGIC)) == 0 ? 0 : -ENOENT;
-    if (r < 0)
-        goto error;
-
-    r = lm->version == htobe32(LM_VERSION) ? 0 : -ENOTSUP;
-    if (r < 0)
-        goto error;
-
-    lm->crc32c = be32toh(lm->crc32c);
-    r = checksum(*lm) == lm->crc32c ? 0 : -EINVAL;
-    if (r < 0)
-        goto error;
-
-    lm->version = be32toh(lm->version);
-
-    maxlen = *length - ALIGN(sizeof(lm_t), true);
-    for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
-        lm_slot_t *s = &lm->slots[slot];
-
-        s->offset = be32toh(s->offset);
-        s->length = be32toh(s->length);
-        s->crc32c = be32toh(s->crc32c);
-
-        if (!uuid_is_zero(s->uuid)) {
-            r = s->offset > sizeof(lm_t) ? 0 : -EINVAL;
-            if (r < 0)
-                goto error;
-
-            r = s->length <= maxlen ? 0 : -EINVAL;
-            if (r < 0)
-                goto error;
+        in = tmp;
+        r = fread(&in[inl], 1, 4096, stdin);
+        inl += r;
+        if (r < 4096 && (ferror(stdin) || inl == 0)) {
+            fprintf(stderr, "Error reading from standard input\n");
+            free(in);
+            return EX_IOERR;
         }
     }
 
-    return fd;
+    if (!in) {
+        fprintf(stderr, "No data on standard input\n");
+        return EX_IOERR;
+    }
 
-error:
-    close(fd);
-    return r;
+    r = luksmeta_set(cd, opts->slot, opts->uuid, in, inl);
+    memset(in, 0, inl);
+    free(in);
+    switch (r) {
+    case -ENOENT:
+        fprintf(stderr, "Device is not initialized (%s)\n", opts->device);
+        return EX_DATAERR;
+
+    case -EINVAL:
+        fprintf(stderr, "LUKSMeta data appears corrupt (%s)\n", opts->device);
+        return EX_DATAERR;
+
+    case -EBADSLT:
+        fprintf(stderr, "The specified slot is invalid (%d)\n", opts->slot);
+        return EX_DATAERR;
+
+    case -EKEYREJECTED:
+        fprintf(stderr,
+            "The specified UUID is reserved "
+            "(%x%x%x%x-%x%x-%x%x-%x%x-%x%x%x%x%x%x)\n",
+            opts->uuid[0x0], opts->uuid[0x1], opts->uuid[0x2], opts->uuid[0x3],
+            opts->uuid[0x4], opts->uuid[0x5], opts->uuid[0x6], opts->uuid[0x7],
+            opts->uuid[0x8], opts->uuid[0x9], opts->uuid[0xa], opts->uuid[0xb],
+            opts->uuid[0xc], opts->uuid[0xd], opts->uuid[0xe], opts->uuid[0xf]
+        );
+        return EX_DATAERR;
+
+    case -EALREADY:
+        fprintf(stderr, "Will not overwrite existing slot (%d)\n", opts->slot);
+        return EX_DATAERR;
+
+    case -ENOSPC:
+        fprintf(stderr, "Insufficient space in the LUKS header\n");
+        return EX_IOERR;
+
+    default:
+        if (r < 0)
+            fprintf(stderr, "An unknown error occurred\n");
+        else if (opts->slot < 0)
+            fprintf(stdout, "%d\n", r);
+
+        return r < 0 ? EX_OSERR : EX_OK;
+    }
 }
 
 static int
-write_header(int fd, lm_t lm)
+cmd_load(const struct options *opts, struct crypt_device *cd)
 {
-    for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
-        lm.slots[slot].offset = htobe32(lm.slots[slot].offset);
-        lm.slots[slot].length = htobe32(lm.slots[slot].length);
-        lm.slots[slot].crc32c = htobe32(lm.slots[slot].crc32c);
-    }
-
-    memcpy(lm.magic, LM_MAGIC, sizeof(LM_MAGIC));
-    lm.version = htobe32(LM_VERSION);
-    lm.crc32c = htobe32(checksum(lm));
-    return writeall(fd, &lm, sizeof(lm));
-}
-
-int
-luksmeta_init(struct crypt_device *cd)
-{
-    uint32_t length = 0;
-    int fd = -1;
+    luksmeta_uuid_t uuid = {};
     int r = 0;
 
-    fd = read_header(cd, O_RDONLY, &length, &(lm_t) {});
-    if (fd >= 0) {
-        close(fd);
-        return -EALREADY;
-    } else if (fd != -ENOENT && fd != -EINVAL) {
-        return fd;
+    if (opts->slot < 0) {
+        fprintf(stderr, "Slot required\n");
+        return EX_DATAERR;
     }
 
-    fd = open_hole(cd, O_RDWR | O_SYNC, &length);
-    if (fd < 0)
-        return fd;
+    r = luksmeta_get(cd, opts->slot, uuid, NULL, 0);
+    if (r >= 0) {
+        uint8_t *out = NULL;
 
-    if (length < ALIGN(sizeof(lm_t), true)) {
-        close(fd);
-        return -ENOSPC;
+        if (opts->have_uuid && memcmp(opts->uuid, uuid, sizeof(uuid)) != 0) {
+            fprintf(stderr, "Slot contains different UUID\n");
+            return EX_DATAERR;
+        }
+
+        out = malloc(r);
+        if (!out) {
+            fprintf(stderr, "Out of memory!\n");
+            return EX_OSERR;
+        }
+
+        r = luksmeta_get(cd, opts->slot, uuid, out, r);
+        if (r >= 0) {
+            fwrite(out, 1, r, stdout);
+            memset(out, 0, r);
+        }
+
+        free(out);
     }
 
-    r = write_header(fd, (lm_t) {});
-    close(fd);
-    return r;
-}
+    switch (r) {
+    case -ENOENT:
+        fprintf(stderr, "Device is not initialized (%s)\n", opts->device);
+        return EX_DATAERR;
 
-int
-luksmeta_get(struct crypt_device *cd, int slot,
-             luksmeta_uuid_t uuid, uint8_t *buf, size_t size)
-{
-    uint32_t length = 0;
-    lm_slot_t *s = NULL;
-    lm_t lm = {};
-    int fd = -1;
-    int r = 0;
+    case -EINVAL:
+        fprintf(stderr, "LUKSMeta data appears corrupt (%s)\n", opts->device);
+        return EX_DATAERR;
 
-    if (slot < 0 || slot >= LUKS_NSLOTS)
-        return -EBADSLT;
-    s = &lm.slots[slot];
+    case -EBADSLT:
+        fprintf(stderr, "The specified slot is invalid (%d)\n", opts->slot);
+        return EX_DATAERR;
 
-    fd = read_header(cd, O_RDONLY, &length, &lm);
-    if (fd < 0)
-        return fd;
+    case -ENODATA:
+        fprintf(stderr, "The specified slot is empty (%d)\n", opts->slot);
+        return EX_DATAERR;
 
-    r = uuid_is_zero(s->uuid) ? -ENODATA : 0;
-    if (r < 0)
-        goto error;
-
-    if (buf && size >= s->length) {
-        r = lseek(fd, s->offset - sizeof(lm), SEEK_CUR) == -1 ? -errno : 0;
+    default:
         if (r < 0)
-            goto error;
+            fprintf(stderr, "An unknown error occurred\n");
 
-        r = readall(fd, buf, s->length);
-        if (r < 0)
-            goto error;
+        return r < 0 ? EX_OSERR : EX_OK;
+    }
+}
 
-        r = crc32c(0, buf, s->length) == s->crc32c ? 0 : -EINVAL;
-        if (r < 0)
-            goto error;
+static int
+cmd_wipe(const struct options *opts, struct crypt_device *cd)
+{
+    int r = 0;
+
+    if (opts->slot < 0) {
+        fprintf(stderr, "Slot required\n");
+        return EX_DATAERR;
     }
 
-    memcpy(uuid, s->uuid, sizeof(luksmeta_uuid_t));
-    close(fd);
-    return s->length;
+    if (!opts->force) {
+        char c = 'X';
 
-error:
-    close(fd);
-    return r;
-}
+        fprintf(stderr,
+            "You are about to wipe a slot. This operation is unrecoverable.\n"
+            "A backup is advised before proceeding.\n\n");
 
-int
-luksmeta_set(struct crypt_device *cd, int slot,
-             const luksmeta_uuid_t uuid, const uint8_t *buf, size_t size)
-{
-    uint32_t length = 0;
-    lm_slot_t *s = NULL;
-    lm_t lm = {};
-    int fd = -1;
-    int r = 0;
-    off_t off;
+        while (!strchr("YyNn", c)) {
+            fprintf(stderr, "Do you wish to erase slot %d on %s? [yn] ",
+                    opts->slot, crypt_get_device_name(cd));
+            c = getc(stdin);
+        }
 
-    if (uuid_is_zero(uuid))
-        return -EKEYREJECTED;
-
-    if (slot == CRYPT_ANY_SLOT)
-        slot = find_unused_slot(cd);
-
-    if (slot < 0 || slot >= LUKS_NSLOTS)
-        return -EBADSLT;
-    s = &lm.slots[slot];
-
-    fd = read_header(cd, O_RDWR | O_SYNC, &length, &lm);
-    if (fd < 0)
-        return fd;
-
-    r = uuid_is_zero(s->uuid) ? 0 : -EALREADY;
-    if (r < 0)
-        goto error;
-
-    s->offset = find_gap(&lm, length, size);
-    r = s->offset >= ALIGN(sizeof(lm), true) ? 0 : -ENOSPC;
-    if (r < 0)
-        goto error;
-
-    memcpy(s->uuid, uuid, sizeof(luksmeta_uuid_t));
-    s->length = size;
-    s->crc32c = crc32c(0, buf, size);
-
-    off = s->offset - sizeof(lm);
-    r = lseek(fd, off, SEEK_CUR) == -1 ? -errno : 0;
-    if (r < 0)
-        goto error;
-
-    r = writeall(fd, buf, size);
-    if (r < 0)
-        goto error;
-
-    off = s->offset + s->length;
-    r = lseek(fd, -off, SEEK_CUR) == -1 ? -errno : 0;
-    if (r < 0)
-        goto error;
-
-    r = write_header(fd, lm);
-
-error:
-    close(fd);
-    return r < 0 ? r : slot;
-}
-
-int
-luksmeta_del(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid)
-{
-    uint8_t *zero = NULL;
-    uint32_t length = 0;
-    lm_slot_t *s = NULL;
-    lm_t lm = {};
-    int fd = -1;
-    int r = 0;
-    off_t off;
-
-    if (slot < 0 || slot >= LUKS_NSLOTS)
-        return -EBADSLT;
-    s = &lm.slots[slot];
-
-    fd = read_header(cd, O_RDWR | O_SYNC, &length, &lm);
-    if (fd < 0)
-        return fd;
-
-    r = uuid_is_zero(s->uuid) ? -EALREADY : 0;
-    if (r < 0)
-        goto error;
-
-    if (uuid && memcmp(uuid, s->uuid, sizeof(luksmeta_uuid_t)) != 0) {
-        r = -EKEYREJECTED;
-        goto error;
+        if (strchr("Nn", c))
+            return EX_NOPERM;
     }
 
-    off = s->offset - sizeof(lm_t);
-    r = lseek(fd, off, SEEK_CUR) == -1 ? -errno : 0;
-    if (r < 0)
-        goto error;
+    r = luksmeta_del(cd, opts->slot, opts->have_uuid ? opts->uuid : NULL);
+    switch (r) {
+    case -ENOENT:
+        fprintf(stderr, "Device is not initialized (%s)\n", opts->device);
+        return EX_DATAERR;
 
-    r = (zero = calloc(1, s->length)) ? 0 : -errno;
-    if (r < 0)
-        goto error;
+    case -EINVAL:
+        fprintf(stderr, "LUKSMeta data appears corrupt (%s)\n", opts->device);
+        return EX_DATAERR;
 
-    r = writeall(fd, zero, s->length);
-    free(zero);
-    if (r < 0)
-        goto error;
+    case -EBADSLT:
+        fprintf(stderr, "The specified slot is invalid (%d)\n", opts->slot);
+        return EX_DATAERR;
 
-    off = s->offset + s->length;
-    r = lseek(fd, -off, SEEK_CUR) == -1 ? -errno : 0;
-    if (r < 0)
-        goto error;
+    case -EKEYREJECTED:
+        fprintf(stderr,
+            "The specified UUID does not match the slot UUID "
+            "(%x%x%x%x-%x%x-%x%x-%x%x-%x%x%x%x%x%x)\n",
+            opts->uuid[0x0], opts->uuid[0x1], opts->uuid[0x2], opts->uuid[0x3],
+            opts->uuid[0x4], opts->uuid[0x5], opts->uuid[0x6], opts->uuid[0x7],
+            opts->uuid[0x8], opts->uuid[0x9], opts->uuid[0xa], opts->uuid[0xb],
+            opts->uuid[0xc], opts->uuid[0xd], opts->uuid[0xe], opts->uuid[0xf]
+        );
+        return EX_DATAERR;
 
-    memset(s, 0, sizeof(lm_slot_t));
-    r = write_header(fd, lm);
+    case -EALREADY:
+        fprintf(stderr, "Slot is already empty (%d)\n", opts->slot);
+        return EX_DATAERR;
 
-error:
-    close(fd);
-    return r < 0 ? r : 0;
+    default:
+        if (r < 0)
+            fprintf(stderr, "An unknown error occurred\n");
+
+        return r < 0 ? EX_OSERR : EX_OK;
+    }
 }
 
+static const struct option opts[] = {
+    { "help",         .val = 'h' },
+    { "device", true, .val = 'd' },
+    { "force",  true, .val = 'f' },
+    { "uuid",   true, .val = 'u' },
+    { "slot",   true, .val = 's' },
+    {}
+};
+
+static const struct {
+    int (*func)(const struct options *opts, struct crypt_device *cd);
+    const char *name;
+} commands[] = {
+    { cmd_init, "init", },
+    { cmd_show, "show", },
+    { cmd_save, "save", },
+    { cmd_load, "load", },
+    { cmd_wipe, "wipe", },
+    {}
+};
+
+int
+main(int argc, char *argv[])
+{
+    struct options o = { .slot = CRYPT_ANY_SLOT };
+
+    for (char c; (c = getopt_long(argc, argv, "hfd:u:s:", opts, NULL)) != -1; ) {
+        switch (c) {
+        case 'h': goto usage;
+        case 'd': o.device = optarg; break;
+        case 'f': o.force = true; break;
+        case 'u':
+            if (sscanf(optarg,
+                "%2hhx%2hhx%2hhx%2hhx-"
+                "%2hhx%2hhx-%2hhx%2hhx-%2hhx%2hhx-"
+                "%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx",
+                &o.uuid[0x0], &o.uuid[0x1], &o.uuid[0x2], &o.uuid[0x3],
+                &o.uuid[0x4], &o.uuid[0x5], &o.uuid[0x6], &o.uuid[0x7],
+                &o.uuid[0x8], &o.uuid[0x9], &o.uuid[0xa], &o.uuid[0xb],
+                &o.uuid[0xc], &o.uuid[0xd], &o.uuid[0xe], &o.uuid[0xf])
+                != 16) {
+                fprintf(stderr, "Invalid UUID (%s)\n", optarg);
+                return EX_DATAERR;
+            }
+
+            o.have_uuid = true;
+            break;
+        case 's':
+            if (sscanf(optarg, "%d", &o.slot) != 1 || o.slot < 0 ||
+                o.slot >= crypt_keyslot_max(CRYPT_LUKS1)) {
+                fprintf(stderr, "Invalid slot (%s)\n", optarg);
+                return EX_DATAERR;
+            }
+            break;
+        }
+    }
+
+    if (argc > 1 && !o.device) {
+        fprintf(stderr, "Device must be specified\n\n");
+        goto usage;
+    }
+
+    for (size_t i = 0; argc > 1 && commands[i].name; i++) {
+        struct crypt_device *cd = NULL;
+        const char *type = NULL;
+        int r = 0;
+
+        if (strcmp(argv[optind], commands[i].name) != 0)
+            continue;
+
+        r = crypt_init(&cd, o.device);
+        if (r != 0) {
+            fprintf(stderr, "Unable to open device (%s): %s\n",
+                    o.device, strerror(-r));
+            return EX_IOERR;
+        }
+
+        r = crypt_load(cd, NULL, NULL);
+        if (r != 0) {
+            fprintf(stderr, "Unable to load device (%s): %s\n",
+                    o.device, strerror(-r));
+            crypt_free(cd);
+            return EX_IOERR;
+        }
+
+        type = crypt_get_type(cd);
+        if (type == NULL) {
+            fprintf(stderr, "Unable to determine device type for %s\n",
+                    o.device);
+            crypt_free(cd);
+            return EX_DATAERR;
+        }
+
+        if (strcmp(type, CRYPT_LUKS1) != 0) {
+            fprintf(stderr, "%s (%s) is not a LUKS device\n", o.device, type);
+            crypt_free(cd);
+            return EX_DATAERR;
+        }
+
+        r = commands[i].func(&o, cd);
+        crypt_free(cd);
+        return r;
+    }
+
+    fprintf(stderr, "Invalid command\n\n");
+
+usage:
+    fprintf(stderr,
+            "Usage: %s init -d DEVICE [-f]\n"
+            "   or: %s show -d DEVICE [-s SLOT]\n"
+            "   or: %s save -d DEVICE [-s SLOT]  -u UUID  < DATA\n"
+            "   or: %s load -d DEVICE  -s SLOT  [-u UUID] > DATA\n"
+            "   or: %s wipe -d DEVICE  -s SLOT  [-u UUID] [-f]\n",
+            argv[0], argv[0], argv[0], argv[0], argv[0]);
+    return EX_USAGE;
+}

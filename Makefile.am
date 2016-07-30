@@ -5,8 +5,10 @@ libcrc32c_la_SOURCES = crc32c.c crc32c.h
 
 include_HEADERS = luksmeta.h
 lib_LTLIBRARIES = libluksmeta.la
-libluksmeta_la_SOURCES = luksmeta.c
 libluksmeta_la_LIBADD = libcrc32c.la @cryptsetup_LIBS@
+
+bin_PROGRAMS = luksmeta
+luksmeta_LDADD = libluksmeta.la @cryptsetup_LIBS@
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = luksmeta.pc
@@ -22,5 +24,5 @@ test_lm_one_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_two_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_big_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 
-TESTS = $(check_PROGRAMS)
+TESTS = $(check_PROGRAMS) test-luksmeta
 

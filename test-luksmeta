@@ -1,0 +1,35 @@
+#!/bin/bash -x
+
+trap 'exit' ERR
+
+export tmp=`mktemp /tmp/luksmeta.XXXXXXXXXX`
+
+function onexit() {
+    rm -f $tmp
+}
+
+trap 'onexit' EXIT
+
+truncate -s 4M $tmp
+echo -n foo | cryptsetup luksFormat $tmp -
+
+./luksmeta init -f -d $tmp
+
+for slot in `seq 0 7`; do
+    test "`./luksmeta show -s $slot -d $tmp`" == ""
+
+    echo hi | ./luksmeta save -s $slot -u 23149359-1b61-483-b818-774ab730fbec -d $tmp
+    test "`./luksmeta show -s $slot -d $tmp`" == "23149359-1b61-483-b818-774ab730fbec"
+
+    test "`./luksmeta load -s $slot -d $tmp`" == "hi"
+    test "`./luksmeta load -s $slot -u 23149359-1b61-483-b818-774ab730fbec -d $tmp`" == "hi"
+    ! ./luksmeta load -s $slot -u 23149359-1b61-483-b818-774ab730fbed -d $tmp
+
+    ! ./luksmeta wipe -f -s $slot -u 23149359-1b61-483-b818-774ab730fbed -d $tmp
+    ./luksmeta wipe -f -s $slot -u 23149359-1b61-483-b818-774ab730fbec -d $tmp
+    ! ./luksmeta load -s $slot -d $tmp
+
+    echo hi | ./luksmeta save -s $slot -u 23149359-1b61-483-b818-774ab730fbec -d $tmp
+    ./luksmeta wipe -f -s $slot -d $tmp
+    ! ./luksmeta load -s $slot -d $tmp
+done
