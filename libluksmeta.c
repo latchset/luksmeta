@@ -318,8 +318,8 @@ luksmeta_init(struct crypt_device *cd)
 }
 
 int
-luksmeta_get(struct crypt_device *cd, int slot,
-             luksmeta_uuid_t uuid, uint8_t *buf, size_t size)
+luksmeta_load(struct crypt_device *cd, int slot,
+              luksmeta_uuid_t uuid, uint8_t *buf, size_t size)
 {
     uint32_t length = 0;
     lm_slot_t *s = NULL;
@@ -367,8 +367,8 @@ error:
 }
 
 int
-luksmeta_set(struct crypt_device *cd, int slot,
-             const luksmeta_uuid_t uuid, const uint8_t *buf, size_t size)
+luksmeta_save(struct crypt_device *cd, int slot,
+              const luksmeta_uuid_t uuid, const uint8_t *buf, size_t size)
 {
     uint32_t length = 0;
     lm_slot_t *s = NULL;
@@ -426,7 +426,7 @@ error:
 }
 
 int
-luksmeta_del(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid)
+luksmeta_wipe(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid)
 {
     uint8_t *zero = NULL;
     uint32_t length = 0;

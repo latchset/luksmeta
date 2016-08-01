@@ -71,8 +71,8 @@ luksmeta_init(struct crypt_device *cd);
  * @note This function returns -E2BIG if the output buffer is too small.
  */
 int
-luksmeta_get(struct crypt_device *cd, int slot,
-             luksmeta_uuid_t uuid, uint8_t *buf, size_t size);
+luksmeta_load(struct crypt_device *cd, int slot,
+              luksmeta_uuid_t uuid, uint8_t *buf, size_t size);
 
 /**
  * Sets metadata to the specified slot
@@ -94,8 +94,8 @@ luksmeta_get(struct crypt_device *cd, int slot,
  * @note This function returns -ENOSPC if there is insufficient space.
  */
 int
-luksmeta_set(struct crypt_device *cd, int slot,
-             const luksmeta_uuid_t uuid, const uint8_t *buf, size_t size);
+luksmeta_save(struct crypt_device *cd, int slot,
+              const luksmeta_uuid_t uuid, const uint8_t *buf, size_t size);
 
 /**
  * Deletes metadata from the specified slot
@@ -115,7 +115,7 @@ luksmeta_set(struct crypt_device *cd, int slot,
  * @note This function returns -EALREADY if the specified slot is empty.
  */
 int
-luksmeta_del(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid);
+luksmeta_wipe(struct crypt_device *cd, int slot, const luksmeta_uuid_t uuid);
 
 #ifdef __cplusplus
 }

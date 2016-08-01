@@ -44,9 +44,9 @@ main(int argc, char *argv[])
     /* Test for -ENOENT when there is no luksmeta header. */
     cd = test_format();
     for (int slot = 0; slot < crypt_keyslot_max(CRYPT_LUKS1); slot++) {
-        assert(luksmeta_set(cd, slot, UUID, UUID, sizeof(UUID)) == -ENOENT);
-        assert(luksmeta_get(cd, slot, uuid, data, sizeof(data)) == -ENOENT);
-        assert(luksmeta_del(cd, slot, UUID) == -ENOENT);
+        assert(luksmeta_save(cd, slot, UUID, UUID, sizeof(UUID)) == -ENOENT);
+        assert(luksmeta_load(cd, slot, uuid, data, sizeof(data)) == -ENOENT);
+        assert(luksmeta_wipe(cd, slot, UUID) == -ENOENT);
         assert(luksmeta_test(cd) == -ENOENT);
     }
     crypt_free(cd);
@@ -64,8 +64,8 @@ main(int argc, char *argv[])
 
     /* Test error codes for a valid luksmeta header but no slot. */
     for (int slot = 0; slot < crypt_keyslot_max(CRYPT_LUKS1); slot++) {
-        assert(luksmeta_get(cd, slot, uuid, data, sizeof(data)) == -ENODATA);
-        assert(luksmeta_del(cd, slot, UUID) == -EALREADY);
+        assert(luksmeta_load(cd, slot, uuid, data, sizeof(data)) == -ENODATA);
+        assert(luksmeta_wipe(cd, slot, UUID) == -EALREADY);
     }
 
     /* Test for -EALREADY when a valid header is present. */
@@ -73,17 +73,17 @@ main(int argc, char *argv[])
     assert(luksmeta_test(cd) == 0);
 
     /* Test for -EBADSLT when an invalid slot is used. */
-    assert(luksmeta_set(cd, 10, UUID, UUID, sizeof(UUID)) == -EBADSLT);
-    assert(luksmeta_get(cd, 10, uuid, data, sizeof(data)) == -EBADSLT);
-    assert(luksmeta_del(cd, 10, UUID) == -EBADSLT);
-    assert(luksmeta_set(cd, -10, UUID, UUID, sizeof(UUID)) == -EBADSLT);
-    assert(luksmeta_get(cd, -10, uuid, data, sizeof(data)) == -EBADSLT);
-    assert(luksmeta_del(cd, -10, UUID) == -EBADSLT);
-    assert(luksmeta_get(cd, -1, uuid, data, sizeof(data)) == -EBADSLT);
-    assert(luksmeta_del(cd, -1, UUID) == -EBADSLT);
+    assert(luksmeta_save(cd, 10, UUID, UUID, sizeof(UUID)) == -EBADSLT);
+    assert(luksmeta_load(cd, 10, uuid, data, sizeof(data)) == -EBADSLT);
+    assert(luksmeta_wipe(cd, 10, UUID) == -EBADSLT);
+    assert(luksmeta_save(cd, -10, UUID, UUID, sizeof(UUID)) == -EBADSLT);
+    assert(luksmeta_load(cd, -10, uuid, data, sizeof(data)) == -EBADSLT);
+    assert(luksmeta_wipe(cd, -10, UUID) == -EBADSLT);
+    assert(luksmeta_load(cd, -1, uuid, data, sizeof(data)) == -EBADSLT);
+    assert(luksmeta_wipe(cd, -1, UUID) == -EBADSLT);
 
     /* Test for -EKEYREJECTED when a reserved UUID is used. */
-    assert(luksmeta_set(cd, CRYPT_ANY_SLOT, (luksmeta_uuid_t) {},
+    assert(luksmeta_save(cd, CRYPT_ANY_SLOT, (luksmeta_uuid_t) {},
                         UUID, sizeof(UUID)) == -EKEYREJECTED);
 
     /* Test to make sure that data corruption is picked up correctly. */
@@ -95,9 +95,9 @@ main(int argc, char *argv[])
     if (write(fd, &(char) { 17 }, 1) != 1)
         error(EXIT_FAILURE, errno, "%s:%d", __FILE__, __LINE__);
     close(fd);
-    assert(luksmeta_set(cd, 2, UUID, UUID, sizeof(UUID)) == -EINVAL);
-    assert(luksmeta_get(cd, 2, uuid, data, sizeof(data)) == -EINVAL);
-    assert(luksmeta_del(cd, 2, UUID) == -EINVAL);
+    assert(luksmeta_save(cd, 2, UUID, UUID, sizeof(UUID)) == -EINVAL);
+    assert(luksmeta_load(cd, 2, uuid, data, sizeof(data)) == -EINVAL);
+    assert(luksmeta_wipe(cd, 2, UUID) == -EINVAL);
 
     crypt_free(cd);
     unlink(filename);

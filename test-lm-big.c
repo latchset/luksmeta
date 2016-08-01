@@ -105,9 +105,9 @@ main(int argc, char *argv[])
     test_hole(cd, &offset, &length);
 
     /* Set the data. */
-    r = luksmeta_set(cd, CRYPT_ANY_SLOT, UUID, DATA, sizeof(DATA));
+    r = luksmeta_save(cd, CRYPT_ANY_SLOT, UUID, DATA, sizeof(DATA));
     if (r < 0)
-        error(EXIT_FAILURE, -r, "luksmeta_set()");
+        error(EXIT_FAILURE, -r, "luksmeta_save()");
 
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
@@ -118,12 +118,12 @@ main(int argc, char *argv[])
         END(offset + 12288),           /* Rest of the file */
     }));
 
-    assert(luksmeta_get(cd, r, uuid, data, sizeof(data)) == sizeof(data));
+    assert(luksmeta_load(cd, r, uuid, data, sizeof(data)) == sizeof(data));
     assert(memcmp(uuid, UUID, sizeof(UUID)) == 0);
     assert(memcmp(data, DATA, sizeof(DATA)) == 0);
 
     /* Delete the data. */
-    assert(luksmeta_del(cd, r, UUID) == 0);
+    assert(luksmeta_wipe(cd, r, UUID) == 0);
 
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */

@@ -96,7 +96,7 @@ cmd_show(const struct options *opts, struct crypt_device *cd)
         if (opts->slot >= 0 && i != opts->slot)
             continue;
 
-        r = luksmeta_get(cd, i, uuid, NULL, 0);
+        r = luksmeta_load(cd, i, uuid, NULL, 0);
         switch (r) {
         case -EBADSLT:
             fprintf(stderr, "Invalid slot (%d)\n", opts->slot);
@@ -175,7 +175,7 @@ cmd_save(const struct options *opts, struct crypt_device *cd)
         return EX_IOERR;
     }
 
-    r = luksmeta_set(cd, opts->slot, opts->uuid, in, inl);
+    r = luksmeta_save(cd, opts->slot, opts->uuid, in, inl);
     memset(in, 0, inl);
     free(in);
     switch (r) {
@@ -231,7 +231,7 @@ cmd_load(const struct options *opts, struct crypt_device *cd)
         return EX_DATAERR;
     }
 
-    r = luksmeta_get(cd, opts->slot, uuid, NULL, 0);
+    r = luksmeta_load(cd, opts->slot, uuid, NULL, 0);
     if (r >= 0) {
         uint8_t *out = NULL;
 
@@ -246,7 +246,7 @@ cmd_load(const struct options *opts, struct crypt_device *cd)
             return EX_OSERR;
         }
 
-        r = luksmeta_get(cd, opts->slot, uuid, out, r);
+        r = luksmeta_load(cd, opts->slot, uuid, out, r);
         if (r >= 0) {
             fwrite(out, 1, r, stdout);
             memset(out, 0, r);
@@ -307,7 +307,7 @@ cmd_wipe(const struct options *opts, struct crypt_device *cd)
             return EX_NOPERM;
     }
 
-    r = luksmeta_del(cd, opts->slot, opts->have_uuid ? opts->uuid : NULL);
+    r = luksmeta_wipe(cd, opts->slot, opts->have_uuid ? opts->uuid : NULL);
     switch (r) {
     case -ENOENT:
         fprintf(stderr, "Device is not initialized (%s)\n", opts->device);

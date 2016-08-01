@@ -42,7 +42,7 @@ main(int argc, char *argv[])
     cd = test_init();
     test_hole(cd, &offset, &length);
 
-    r = luksmeta_set(cd, CRYPT_ANY_SLOT, UUID, UUID, sizeof(UUID));
+    r = luksmeta_save(cd, CRYPT_ANY_SLOT, UUID, UUID, sizeof(UUID));
     if (r < 0)
         error(EXIT_FAILURE, -r, "%s:%d", __FILE__, __LINE__);
 
@@ -55,15 +55,15 @@ main(int argc, char *argv[])
         END(offset + 8192),            /* Rest of the file */
     }));
 
-    assert(luksmeta_get(cd, r, uuid, data, sizeof(data)) == sizeof(data));
+    assert(luksmeta_load(cd, r, uuid, data, sizeof(data)) == sizeof(data));
     assert(memcmp(uuid, UUID, sizeof(UUID)) == 0);
     assert(memcmp(data, UUID, sizeof(UUID)) == 0);
-    assert(luksmeta_set(cd, r, UUID, UUID, sizeof(UUID)) == -EALREADY);
-    assert(luksmeta_del(cd, r, (luksmeta_uuid_t) {}) == -EKEYREJECTED);
-    assert(luksmeta_del(cd, r, (luksmeta_uuid_t) { 1 }) == -EKEYREJECTED);
-    assert(luksmeta_del(cd, r, UUID) == 0);
-    assert(luksmeta_del(cd, r, UUID) == -EALREADY);
-    assert(luksmeta_del(cd, r, (luksmeta_uuid_t) {}) == -EALREADY);
+    assert(luksmeta_save(cd, r, UUID, UUID, sizeof(UUID)) == -EALREADY);
+    assert(luksmeta_wipe(cd, r, (luksmeta_uuid_t) {}) == -EKEYREJECTED);
+    assert(luksmeta_wipe(cd, r, (luksmeta_uuid_t) { 1 }) == -EKEYREJECTED);
+    assert(luksmeta_wipe(cd, r, UUID) == 0);
+    assert(luksmeta_wipe(cd, r, UUID) == -EALREADY);
+    assert(luksmeta_wipe(cd, r, (luksmeta_uuid_t) {}) == -EALREADY);
 
     /* Test the layout state. */
     assert(test_layout((range_t[]) {
