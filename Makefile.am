@@ -5,6 +5,7 @@ libcrc32c_la_SOURCES = crc32c.c crc32c.h
 
 include_HEADERS = luksmeta.h
 lib_LTLIBRARIES = libluksmeta.la
+libluksmeta_la_LDFLAGS = -export-symbols-regex '^luksmeta_'
 libluksmeta_la_LIBADD = libcrc32c.la @cryptsetup_LIBS@
 
 bin_PROGRAMS = luksmeta
