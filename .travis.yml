@@ -3,7 +3,7 @@ before_script:
   - autoreconf -if
 script:
   - CFLAGS=-coverage LDFLAGS=-lgcov ./configure --prefix=/usr
-  - make -k check TESTS=
+  - make -k check V=1 TESTS=
   - if ! sudo make check; then cat ./test-suite.log ; exit 1; fi
 after_success:
   - bash <(curl -s https://codecov.io/bash)
