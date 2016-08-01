@@ -36,6 +36,12 @@ struct options {
 };
 
 static int
+cmd_test(const struct options *opts, struct crypt_device *cd)
+{
+    return luksmeta_test(cd) == 0 ? EX_OK : EX_DATAERR;
+}
+
+static int
 cmd_init(const struct options *opts, struct crypt_device *cd)
 {
     int r = 0;
@@ -351,6 +357,7 @@ static const struct {
     int (*func)(const struct options *opts, struct crypt_device *cd);
     const char *name;
 } commands[] = {
+    { cmd_test, "test", },
     { cmd_init, "init", },
     { cmd_show, "show", },
     { cmd_save, "save", },
@@ -446,11 +453,12 @@ main(int argc, char *argv[])
 
 usage:
     fprintf(stderr,
-            "Usage: %s init -d DEVICE [-f]\n"
+            "Usage: %s test -d DEVICE\n"
+            "   or: %s init -d DEVICE [-f]\n"
             "   or: %s show -d DEVICE [-s SLOT]\n"
             "   or: %s save -d DEVICE [-s SLOT]  -u UUID  < DATA\n"
             "   or: %s load -d DEVICE  -s SLOT  [-u UUID] > DATA\n"
             "   or: %s wipe -d DEVICE  -s SLOT  [-u UUID] [-f]\n",
-            argv[0], argv[0], argv[0], argv[0], argv[0]);
+            argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
     return EX_USAGE;
 }

@@ -13,7 +13,10 @@ trap 'onexit' EXIT
 truncate -s 4M $tmp
 echo -n foo | cryptsetup luksFormat $tmp -
 
+! ./luksmeta test -d $tmp
+
 ./luksmeta init -f -d $tmp
+./luksmeta test -d $tmp
 ./luksmeta init -f -d $tmp
 
 for slot in `seq 0 7`; do

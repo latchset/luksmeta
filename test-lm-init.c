@@ -47,6 +47,7 @@ main(int argc, char *argv[])
         assert(luksmeta_set(cd, slot, UUID, UUID, sizeof(UUID)) == -ENOENT);
         assert(luksmeta_get(cd, slot, uuid, data, sizeof(data)) == -ENOENT);
         assert(luksmeta_del(cd, slot, UUID) == -ENOENT);
+        assert(luksmeta_test(cd) == -ENOENT);
     }
     crypt_free(cd);
 
@@ -69,6 +70,7 @@ main(int argc, char *argv[])
 
     /* Test for -EALREADY when a valid header is present. */
     assert(luksmeta_init(cd) == -EALREADY);
+    assert(luksmeta_test(cd) == 0);
 
     /* Test for -EBADSLT when an invalid slot is used. */
     assert(luksmeta_set(cd, 10, UUID, UUID, sizeof(UUID)) == -EBADSLT);

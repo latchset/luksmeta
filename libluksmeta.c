@@ -277,19 +277,31 @@ write_header(int fd, lm_t lm)
 }
 
 int
+luksmeta_test(struct crypt_device *cd)
+{
+    int fd = -1;
+
+    fd = read_header(cd, O_RDONLY, &(uint32_t) {0}, &(lm_t) {});
+    if (fd >= 0) {
+        close(fd);
+        return 0;
+    }
+
+    return fd;
+}
+
+int
 luksmeta_init(struct crypt_device *cd)
 {
     uint32_t length = 0;
     int fd = -1;
     int r = 0;
 
-    fd = read_header(cd, O_RDONLY, &length, &(lm_t) {});
-    if (fd >= 0) {
-        close(fd);
+    r = luksmeta_test(cd);
+    if (r == 0)
         return -EALREADY;
-    } else if (fd != -ENOENT && fd != -EINVAL) {
-        return fd;
-    }
+    else if (r != -ENOENT && r != -EINVAL)
+        return r;
 
     fd = open_hole(cd, O_RDWR | O_SYNC, &length);
     if (fd < 0)

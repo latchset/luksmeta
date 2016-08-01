@@ -28,6 +28,18 @@ extern "C" {
 typedef uint8_t luksmeta_uuid_t[16];
 
 /**
+ * Checks for the existence of a valid LUKSMeta header on a LUKSv1 device
+ *
+ * @param cd crypt device handle
+ * @return Zero on success or negative errno value otherwise.
+ *
+ * @note This function returns -ENOENT if the device has no luksmeta header.
+ * @note This function returns -EINVAL if the header or slot data is corrupted.
+ */
+int
+luksmeta_test(struct crypt_device *cd);
+
+/**
  * Initializes metadata storage on a LUKSv1 device
  *
  * @param cd crypt device handle
