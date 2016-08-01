@@ -99,11 +99,13 @@ find_gap(const lm_t *lm, uint32_t length, size_t size)
 }
 
 static int
-find_unused_slot(struct crypt_device *cd)
+find_unused_slot(struct crypt_device *cd, const lm_t *lm)
 {
     for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
         switch (crypt_keyslot_status(cd, slot)) {
-        case CRYPT_SLOT_INACTIVE: return slot;
+        case CRYPT_SLOT_INACTIVE:
+            if (uuid_is_zero(lm->slots[slot].uuid))
+                return slot;
         default: continue;
         }
     }
@@ -380,16 +382,16 @@ luksmeta_save(struct crypt_device *cd, int slot,
     if (uuid_is_zero(uuid))
         return -EKEYREJECTED;
 
+    fd = read_header(cd, O_RDWR | O_SYNC, &length, &lm);
+    if (fd < 0)
+        return fd;
+
     if (slot == CRYPT_ANY_SLOT)
-        slot = find_unused_slot(cd);
+        slot = find_unused_slot(cd, &lm);
 
     if (slot < 0 || slot >= LUKS_NSLOTS)
         return -EBADSLT;
     s = &lm.slots[slot];
-
-    fd = read_header(cd, O_RDWR | O_SYNC, &length, &lm);
-    if (fd < 0)
-        return fd;
 
     r = uuid_is_zero(s->uuid) ? 0 : -EALREADY;
     if (r < 0)
