@@ -27,6 +27,11 @@
 #include <string.h>
 #include <sysexits.h>
 
+#define UUID_TEMPLATE \
+    "%02hhx%02hhx%02hhx%02hhx-" \
+    "%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-" \
+    "%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx"
+
 struct options {
     const char *device;
     luksmeta_uuid_t uuid;
@@ -125,7 +130,7 @@ cmd_show(const struct options *opts, struct crypt_device *cd)
                 if (opts->slot < 0)
                     fprintf(stdout, "%d %8s ", i, status(cd, i));
 
-                fprintf(stdout, "%x%x%x%x-%x%x-%x%x-%x%x-%x%x%x%x%x%x\n",
+                fprintf(stdout, UUID_TEMPLATE "\n",
                         uuid[0x0], uuid[0x1], uuid[0x2], uuid[0x3],
                         uuid[0x4], uuid[0x5], uuid[0x6], uuid[0x7],
                         uuid[0x8], uuid[0x9], uuid[0xa], uuid[0xb],
@@ -193,8 +198,7 @@ cmd_save(const struct options *opts, struct crypt_device *cd)
 
     case -EKEYREJECTED:
         fprintf(stderr,
-            "The specified UUID is reserved "
-            "(%x%x%x%x-%x%x-%x%x-%x%x-%x%x%x%x%x%x)\n",
+            "The specified UUID is reserved (" UUID_TEMPLATE ")\n",
             opts->uuid[0x0], opts->uuid[0x1], opts->uuid[0x2], opts->uuid[0x3],
             opts->uuid[0x4], opts->uuid[0x5], opts->uuid[0x6], opts->uuid[0x7],
             opts->uuid[0x8], opts->uuid[0x9], opts->uuid[0xa], opts->uuid[0xb],
@@ -323,8 +327,7 @@ cmd_wipe(const struct options *opts, struct crypt_device *cd)
 
     case -EKEYREJECTED:
         fprintf(stderr,
-            "The specified UUID does not match the slot UUID "
-            "(%x%x%x%x-%x%x-%x%x-%x%x-%x%x%x%x%x%x)\n",
+            "The UUID does not match the slot UUID (" UUID_TEMPLATE ")\n",
             opts->uuid[0x0], opts->uuid[0x1], opts->uuid[0x2], opts->uuid[0x3],
             opts->uuid[0x4], opts->uuid[0x5], opts->uuid[0x6], opts->uuid[0x7],
             opts->uuid[0x8], opts->uuid[0x9], opts->uuid[0xa], opts->uuid[0xb],
@@ -377,10 +380,7 @@ main(int argc, char *argv[])
         case 'd': o.device = optarg; break;
         case 'f': o.force = true; break;
         case 'u':
-            if (sscanf(optarg,
-                "%2hhx%2hhx%2hhx%2hhx-"
-                "%2hhx%2hhx-%2hhx%2hhx-%2hhx%2hhx-"
-                "%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx",
+            if (sscanf(optarg, UUID_TEMPLATE,
                 &o.uuid[0x0], &o.uuid[0x1], &o.uuid[0x2], &o.uuid[0x3],
                 &o.uuid[0x4], &o.uuid[0x5], &o.uuid[0x6], &o.uuid[0x7],
                 &o.uuid[0x8], &o.uuid[0x9], &o.uuid[0xa], &o.uuid[0xb],

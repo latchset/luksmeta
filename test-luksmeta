@@ -22,18 +22,18 @@ echo -n foo | cryptsetup luksFormat $tmp -
 for slot in `seq 0 7`; do
     test "`./luksmeta show -s $slot -d $tmp`" == ""
 
-    echo hi | ./luksmeta save -s $slot -u 23149359-1b61-483-b818-774ab730fbec -d $tmp
-    test "`./luksmeta show -s $slot -d $tmp`" == "23149359-1b61-483-b818-774ab730fbec"
+    echo hi | ./luksmeta save -s $slot -u 23149359-1b61-4803-b818-774ab730fbec -d $tmp
+    test "`./luksmeta show -s $slot -d $tmp`" == "23149359-1b61-4803-b818-774ab730fbec"
 
     test "`./luksmeta load -s $slot -d $tmp`" == "hi"
-    test "`./luksmeta load -s $slot -u 23149359-1b61-483-b818-774ab730fbec -d $tmp`" == "hi"
-    ! ./luksmeta load -s $slot -u 23149359-1b61-483-b818-774ab730fbed -d $tmp
+    test "`./luksmeta load -s $slot -u 23149359-1b61-4803-b818-774ab730fbec -d $tmp`" == "hi"
+    ! ./luksmeta load -s $slot -u 23149359-1b61-4803-b818-774ab730fbed -d $tmp
 
-    ! ./luksmeta wipe -f -s $slot -u 23149359-1b61-483-b818-774ab730fbed -d $tmp
-    ./luksmeta wipe -f -s $slot -u 23149359-1b61-483-b818-774ab730fbec -d $tmp
+    ! ./luksmeta wipe -f -s $slot -u 23149359-1b61-4803-b818-774ab730fbed -d $tmp
+    ./luksmeta wipe -f -s $slot -u 23149359-1b61-4803-b818-774ab730fbec -d $tmp
     ! ./luksmeta load -s $slot -d $tmp
 
-    echo hi | ./luksmeta save -s $slot -u 23149359-1b61-483-b818-774ab730fbec -d $tmp
+    echo hi | ./luksmeta save -s $slot -u 23149359-1b61-4803-b818-774ab730fbec -d $tmp
     ./luksmeta wipe -f -s $slot -d $tmp
     ! ./luksmeta load -s $slot -d $tmp
 done
