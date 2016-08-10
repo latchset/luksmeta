@@ -52,7 +52,7 @@ cmd_init(const struct options *opts, struct crypt_device *cd)
     int r = 0;
 
     if (!opts->force) {
-        char c = 'X';
+        int c = 'X';
 
         fprintf(stderr,
             "You are about to initialize a LUKS device for metadata storage.\n"
@@ -295,7 +295,7 @@ cmd_wipe(const struct options *opts, struct crypt_device *cd)
     }
 
     if (!opts->force) {
-        char c = 'X';
+        int c = 'X';
 
         fprintf(stderr,
             "You are about to wipe a slot. This operation is unrecoverable.\n"

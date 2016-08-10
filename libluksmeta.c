@@ -389,8 +389,9 @@ luksmeta_save(struct crypt_device *cd, int slot,
     if (slot == CRYPT_ANY_SLOT)
         slot = find_unused_slot(cd, &lm);
 
-    if (slot < 0 || slot >= LUKS_NSLOTS)
-        return -EBADSLT;
+    r = slot >= 0 && slot < LUKS_NSLOTS ? 0 : -EBADSLT;
+    if (r < 0)
+        goto error;
     s = &lm.slots[slot];
 
     r = uuid_is_zero(s->uuid) ? 0 : -EALREADY;
