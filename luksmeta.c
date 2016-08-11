@@ -374,7 +374,7 @@ main(int argc, char *argv[])
 {
     struct options o = { .slot = CRYPT_ANY_SLOT };
 
-    for (char c; (c = getopt_long(argc, argv, "hfd:u:s:", opts, NULL)) != -1; ) {
+    for (int c; (c = getopt_long(argc, argv, "hfd:u:s:", opts, NULL)) != -1; ) {
         switch (c) {
         case 'h': goto usage;
         case 'd': o.device = optarg; break;
