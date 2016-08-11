@@ -25,5 +25,6 @@ test_lm_one_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_two_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_big_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 
+EXTRA_DIST = test-luksmeta
 TESTS = $(check_PROGRAMS) test-luksmeta
 
