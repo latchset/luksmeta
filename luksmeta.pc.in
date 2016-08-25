@@ -6,5 +6,6 @@ includedir=${prefix}/include
 Name: LUKS Meta
 Description: Library for storing metadata in the LUKS header
 Version: @VERSION@
+Requires: libcryptsetup
 Libs: -L${libdir} -lluksmeta
 Cflags: -I${includedir}
