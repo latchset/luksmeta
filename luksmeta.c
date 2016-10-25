@@ -407,6 +407,9 @@ main(int argc, char *argv[])
         goto usage;
     }
 
+    if (optind != argc - 1)
+        goto usage;
+
     for (size_t i = 0; argc > 1 && commands[i].name; i++) {
         struct crypt_device *cd = NULL;
         const char *type = NULL;
