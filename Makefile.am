@@ -11,6 +11,8 @@ libluksmeta_la_LIBADD = libcrc32c.la @cryptsetup_LIBS@
 bin_PROGRAMS = luksmeta
 luksmeta_LDADD = libluksmeta.la @cryptsetup_LIBS@
 
+man8_MANS = luksmeta.8
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = luksmeta.pc
 
@@ -25,6 +27,6 @@ test_lm_one_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_two_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_big_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 
-EXTRA_DIST = test-luksmeta
+EXTRA_DIST = $(man8_MANS) test-luksmeta
 TESTS = $(check_PROGRAMS) test-luksmeta
 
