@@ -102,12 +102,9 @@ static int
 find_unused_slot(struct crypt_device *cd, const lm_t *lm)
 {
     for (int slot = 0; slot < LUKS_NSLOTS; slot++) {
-        switch (crypt_keyslot_status(cd, slot)) {
-        case CRYPT_SLOT_INACTIVE:
-            if (uuid_is_zero(lm->slots[slot].uuid))
-                return slot;
-        default: continue;
-        }
+        if (crypt_keyslot_status(cd, slot) == CRYPT_SLOT_INACTIVE &&
+            uuid_is_zero(lm->slots[slot].uuid))
+            return slot;
     }
 
     return -1;
