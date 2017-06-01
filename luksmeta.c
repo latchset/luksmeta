@@ -368,11 +368,11 @@ cmd_wipe(const struct options *opts, struct crypt_device *cd)
 }
 
 static const struct option opts[] = {
-    { "help",         .val = 'h' },
-    { "device", true, .val = 'd' },
-    { "force",  true, .val = 'f' },
-    { "uuid",   true, .val = 'u' },
-    { "slot",   true, .val = 's' },
+    { "help",                      .val = 'h' },
+    { "force",  no_argument,       .val = 'f' },
+    { "device", required_argument, .val = 'd' },
+    { "uuid",   required_argument, .val = 'u' },
+    { "slot",   required_argument, .val = 's' },
     {}
 };
 
