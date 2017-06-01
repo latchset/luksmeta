@@ -313,7 +313,7 @@ luksmeta_init(struct crypt_device *cd)
 
     r = write_header(fd, (lm_t) {});
     close(fd);
-    return r;
+    return r > 0 ? 0 : r;
 }
 
 int
