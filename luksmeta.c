@@ -75,7 +75,6 @@ cmd_init(const struct options *opts, struct crypt_device *cd)
     }
 
     r = luksmeta_init(cd);
-    fprintf(stderr, "rc: %d\n", r);
     switch (r) {
     case 0: /* fallthrough */
     case -EALREADY:
