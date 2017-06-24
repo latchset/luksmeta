@@ -27,5 +27,53 @@ The end result looks like this on disk:
     | LUKSv1 header | LUKSv1 slots (8) | LUKSMeta header | LUKSMeta blocks (0-8) | Encrypted Data |
     +---------------+------------------+-----------------+-----------------------+----------------+
 
+## LUKSMeta Command Line Interface
+
+`luksmeta test` -d DEVICE
+
+`luksmeta nuke` -d DEVICE [-f]
+
+`luksmeta init` -d DEVICE [-f] [-n]
+
+`luksmeta show` -d DEVICE [-s SLOT]
+
+`luksmeta save` -d DEVICE [-s SLOT]  -u UUID  < DATA
+
+`luksmeta load` -d DEVICE  -s SLOT  [-u UUID] > DATA
+
+`luksmeta wipe` -d DEVICE  -s SLOT  [-u UUID] [-f]
+
+### Examples
+
+Destroy all data (including LUKSMeta data) in the LUKSv1 header gap and
+initalize the gap for LUKSMeta storage:
+
+    $ luksmeta init -n -f -d /dev/sdz
+
+If already initialized, do nothing. Otherwise, destroy all non-LUKSMeta data
+in the LUKSv1 header gap and initialize the gap for LUKSMeta storage:
+
+    $ luksmeta init -f -d /dev/sdz
+
+Write some data to a slot:
+
+    $ UUID=`uuidgen`
+    $ echo $UUID
+    31c25e3b-b8e2-4eaa-a427-23aa882feef2
+    $ echo "Hello, World" | luksmeta save -d /dev/sdz -s 0 -u $UUID
+
+Read the data back:
+
+    $ luksmeta load -d /dev/sdz -s 0 -u $UUID
+    Hello, World
+
+Wipe the data from the slot:
+
+    $ luksmeta wipe -d /dev/sdz -s 0 -u $UUID
+
+Erase all trace of LUKSMeta:
+
+    $ luksmeta nuke -f -d /dev/sdz
+
 [usbguard]: https://github.com/dkopecek/usbguard
 [tang]: https://github.com/latchset/tang
