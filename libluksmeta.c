@@ -131,8 +131,11 @@ writeall(int fd, const void *buf, size_t size)
 
     for (ssize_t r, t = 0; t < (ssize_t) size; t += r) {
         r = write(fd, &tmp[t], size - t);
-        if (r < 0 && errno != EAGAIN)
-            return -errno;
+        if (r < 0) {
+            if (errno != EAGAIN)
+                return -errno;
+            r = 0;
+        }
     }
 
     return size;
