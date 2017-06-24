@@ -5,7 +5,9 @@ luksmeta(1) -- Utility for storing metadata in a LUKSv1 header
 
 `luksmeta test` -d DEVICE
 
-`luksmeta init` -d DEVICE [-f]
+`luksmeta nuke` -d DEVICE [-f]
+
+`luksmeta init` -d DEVICE [-f] [-n]
 
 `luksmeta show` -d DEVICE [-s SLOT]
 
@@ -59,18 +61,25 @@ compliant UUID generator will suffice.
 ## INITIALIZATION
 
 Before reading or writing metadata, the LUKSv1 block device must be
-initialized for metadata storage. Two commands help with this process:
-`luksmeta test` and `luksmeta init`.
+initialized for metadata storage. Three commands help with this process:
+`luksmeta test`, `luksmeta nuke` and `luksmeta init`.
 
 The `luksmeta test` command simply checks an existing block device to see
 if it is initialized for metadata storage. This command does not provide any
 output, so be sure to check its return code (see below).
 
+The `luksmeta nuke` command will zero (erase) the entire LUKSv1 header gap.
+Since this operation is destructive, user confirmation will be required before
+clearing the gap unless the `-f` option is supplied.
+
 The `luksmeta init` command initializes the LUKSv1 block device for metadata
 storage. This process will wipe out any data in the LUKSv1 header gap. For
 this reason, this command will require user confirmation before any data is
-written, unless the `-f` option is supplied. Note that this command succeeds
-if the device is already initialized.
+written unless the `-f` option is supplied. Note that this command succeeds
+without any modification if the device is already initialized. If you would
+like to force the creation of clean initialization state, you can specify the
+`-n` option to nuke the LUKSv1 header gap before initialization (but after
+user confirmation).
 
 ## METADATA STATE
 
@@ -173,9 +182,15 @@ return `EX_UNAVAILABLE` when you attempt to read from an empty slot.
 
 ## EXAMPLES
 
-Ensure that a device is initialized:
+Destroy all data (including LUKSMeta data) in the LUKSv1 header gap and
+initalize the gap for LUKSMeta storage:
 
-    $ luksmeta test -d /dev/sdz || luksmeta init -f -d /dev/sdz
+    $ luksmeta init -n -f -d /dev/sdz
+
+If already initialized, do nothing. Otherwise, destroy all non-LUKSMeta data
+in the LUKSv1 header gap and initialize the gap for LUKSMeta storage:
+
+    $ luksmeta init -f -d /dev/sdz
 
 Write some data to a slot:
 
@@ -192,6 +207,10 @@ Read the data back:
 Wipe the data from the slot:
 
     $ luksmeta wipe -d /dev/sdz -s 0 -u $UUID
+
+Erase all trace of LUKSMeta:
+
+    $ luksmeta nuke -f -d /dev/sdz
 
 ## AUTHOR
 

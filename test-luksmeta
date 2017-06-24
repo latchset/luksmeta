@@ -37,3 +37,16 @@ for slot in `seq 0 7`; do
     ./luksmeta wipe -f -s $slot -d $tmp
     ! ./luksmeta load -s $slot -d $tmp
 done
+
+# Test nuking
+./luksmeta test -d $tmp
+./luksmeta init -f -d $tmp
+./luksmeta nuke -f -d $tmp
+! ./luksmeta test -d $tmp
+
+# Test implicit nuking
+./luksmeta init -f -d $tmp
+echo hi | ./luksmeta save -s 0 -u 23149359-1b61-4803-b818-774ab730fbec -d $tmp
+test "`./luksmeta load -s 0 -d $tmp`" == "hi"
+./luksmeta init -n -f -d $tmp
+! ./luksmeta load -s 0 -d $tmp

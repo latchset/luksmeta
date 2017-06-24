@@ -40,6 +40,15 @@ int
 luksmeta_test(struct crypt_device *cd);
 
 /**
+ * Zeroes the entire LUKSMeta storage space.
+ *
+ * @param cd crypt device handle
+ * @return Zero on success or negative errno value otherwise.
+ */
+int
+luksmeta_nuke(struct crypt_device *cd);
+
+/**
  * Initializes metadata storage on a LUKSv1 device
  *
  * @param cd crypt device handle

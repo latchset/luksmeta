@@ -10,7 +10,10 @@
 \fBluksmeta test\fR \-d DEVICE
 .
 .P
-\fBluksmeta init\fR \-d DEVICE [\-f]
+\fBluksmeta nuke\fR \-d DEVICE [\-f]
+.
+.P
+\fBluksmeta init\fR \-d DEVICE [\-f] [\-n]
 .
 .P
 \fBluksmeta show\fR \-d DEVICE [\-s SLOT]
@@ -49,13 +52,16 @@ UUIDs are large enough that collision is practically impossible\. So if your app
 The easiest way to generate a UUID is to use \fBuuidgen\fR(1)\. However, any compliant UUID generator will suffice\.
 .
 .SH "INITIALIZATION"
-Before reading or writing metadata, the LUKSv1 block device must be initialized for metadata storage\. Two commands help with this process: \fBluksmeta test\fR and \fBluksmeta init\fR\.
+Before reading or writing metadata, the LUKSv1 block device must be initialized for metadata storage\. Three commands help with this process: \fBluksmeta test\fR, \fBluksmeta nuke\fR and \fBluksmeta init\fR\.
 .
 .P
 The \fBluksmeta test\fR command simply checks an existing block device to see if it is initialized for metadata storage\. This command does not provide any output, so be sure to check its return code (see below)\.
 .
 .P
-The \fBluksmeta init\fR command initializes the LUKSv1 block device for metadata storage\. This process will wipe out any data in the LUKSv1 header gap\. For this reason, this command will require user confirmation before any data is written, unless the \fB\-f\fR option is supplied\. Note that this command succeeds if the device is already initialized\.
+The \fBluksmeta nuke\fR command will zero (erase) the entire LUKSv1 header gap\. Since this operation is destructive, user confirmation will be required before clearing the gap unless the \fB\-f\fR option is supplied\.
+.
+.P
+The \fBluksmeta init\fR command initializes the LUKSv1 block device for metadata storage\. This process will wipe out any data in the LUKSv1 header gap\. For this reason, this command will require user confirmation before any data is written unless the \fB\-f\fR option is supplied\. Note that this command succeeds without any modification if the device is already initialized\. If you would like to force the creation of clean initialization state, you can specify the \fB\-n\fR option to nuke the LUKSv1 header gap before initialization (but after user confirmation)\.
 .
 .SH "METADATA STATE"
 The \fBluksmeta show\fR command displays the current state of slots on the LUKSv1 block device\. If no slot is specified, it prints a table consisting of the slot number, the corresponding LUKSv1 slot state and the UUID of the data stored in the \fBluksmeta\fR slot (or "empty" if no data is stored)\. If a slot is specified, this command simply prints out the UUID of the data in the slot\. If the slot does not contain data, it prints nothing\.
@@ -138,13 +144,26 @@ This command uses the return values as defined by \fBsysexit\.h\fR\. The followi
 Additionally, \fBluksmeta save\fR will return \fBEX_UNAVAILABLE\fR when you attempt to save data into a slot that is already used\. Likewise, \fBluksmeta load\fR will return \fBEX_UNAVAILABLE\fR when you attempt to read from an empty slot\.
 .
 .SH "EXAMPLES"
-Ensure that a device is initialized:
+Destroy all data (including LUKSMeta data) in the LUKSv1 header gap and initalize the gap for LUKSMeta storage:
 .
 .IP "" 4
 .
 .nf
 
-$ luksmeta test \-d /dev/sdz || luksmeta init \-f \-d /dev/sdz
+$ luksmeta init \-n \-f \-d /dev/sdz
+.
+.fi
+.
+.IP "" 0
+.
+.P
+If already initialized, do nothing\. Otherwise, destroy all non\-LUKSMeta data in the LUKSv1 header gap and initialize the gap for LUKSMeta storage:
+.
+.IP "" 4
+.
+.nf
+
+$ luksmeta init \-f \-d /dev/sdz
 .
 .fi
 .
@@ -188,6 +207,19 @@ Wipe the data from the slot:
 .nf
 
 $ luksmeta wipe \-d /dev/sdz \-s 0 \-u $UUID
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Erase all trace of LUKSMeta:
+.
+.IP "" 4
+.
+.nf
+
+$ luksmeta nuke \-f \-d /dev/sdz
 .
 .fi
 .

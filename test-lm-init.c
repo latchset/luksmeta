@@ -99,6 +99,17 @@ main(int argc, char *argv[])
     assert(luksmeta_load(cd, 2, uuid, data, sizeof(data)) == -EINVAL);
     assert(luksmeta_wipe(cd, 2, UUID) == -EINVAL);
 
+    /* Test nuking */
+    assert(luksmeta_init(cd) == 0);
+    assert(luksmeta_test(cd) == 0);
+    assert(luksmeta_nuke(cd) == 0);
+    assert(luksmeta_test(cd) == -ENOENT);
+    assert(test_layout((range_t[]) {
+        { 0, 1024 },                   /* LUKS header */
+        { 1024, offset - 1024, true }, /* Keyslot Area */
+        END(offset),                   /* Rest of the file */
+    }));
+
     crypt_free(cd);
     unlink(filename);
     return 0;

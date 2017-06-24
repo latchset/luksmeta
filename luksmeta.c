@@ -41,6 +41,7 @@ struct options {
     luksmeta_uuid_t uuid;
     bool have_uuid;
     bool force;
+    bool nuke;
     int slot;
 };
 
@@ -48,6 +49,40 @@ static int
 cmd_test(const struct options *opts, struct crypt_device *cd)
 {
     return luksmeta_test(cd) == 0 ? EX_OK : EX_OSFILE;
+}
+
+static int
+cmd_nuke(const struct options *opts, struct crypt_device *cd)
+{
+    int r = 0;
+
+    if (!opts->force) {
+        int c = 'X';
+
+        fprintf(stderr,
+                "You are about to erase all data in the LUKSMeta storage area.\n"
+                "A backup is advised before erasure is performed.\n\n");
+
+        while (!strchr("YyNn", c)) {
+            fprintf(stderr, "Do you wish to nuke %s? [yn] ",
+                    crypt_get_device_name(cd));
+            c = getc(stdin);
+        }
+
+        if (strchr("Nn", c))
+            return EX_NOPERM;
+    }
+
+    r = luksmeta_nuke(cd);
+    switch (r) {
+    case 0:
+        return EX_OK;
+
+    default:
+        fprintf(stderr, "Error while erasing device (%s): %s\n",
+                opts->device, strerror(-r));
+        return EX_OSERR;
+    }
 }
 
 static int
@@ -72,6 +107,13 @@ cmd_init(const struct options *opts, struct crypt_device *cd)
 
         if (strchr("Nn", c))
             return EX_NOPERM;
+    }
+
+    if (opts->nuke) {
+        struct options o = { .force = true, .device = opts->device };
+        r = cmd_nuke(&o, cd);
+        if (r != EX_OK)
+            return r;
     }
 
     r = luksmeta_init(cd);
@@ -366,8 +408,10 @@ cmd_wipe(const struct options *opts, struct crypt_device *cd)
     }
 }
 
-static const struct option opts[] = {
+static const char *sopts = "hfnd:u:s:";
+static const struct option lopts[] = {
     { "help",                      .val = 'h' },
+    { "nuke",   no_argument,       .val = 'n' },
     { "force",  no_argument,       .val = 'f' },
     { "device", required_argument, .val = 'd' },
     { "uuid",   required_argument, .val = 'u' },
@@ -380,6 +424,7 @@ static const struct {
     const char *name;
 } commands[] = {
     { cmd_test, "test", },
+    { cmd_nuke, "nuke", },
     { cmd_init, "init", },
     { cmd_show, "show", },
     { cmd_save, "save", },
@@ -393,10 +438,11 @@ main(int argc, char *argv[])
 {
     struct options o = { .slot = CRYPT_ANY_SLOT };
 
-    for (int c; (c = getopt_long(argc, argv, "hfd:u:s:", opts, NULL)) != -1; ) {
+    for (int c; (c = getopt_long(argc, argv, sopts, lopts, NULL)) != -1; ) {
         switch (c) {
         case 'h': goto usage;
         case 'd': o.device = optarg; break;
+        case 'n': o.nuke = true; break;
         case 'f': o.force = true; break;
         case 'u':
             if (sscanf(optarg, UUID_TMPL, UUID_ARGS(&o.uuid)) != 16) {
@@ -470,12 +516,12 @@ main(int argc, char *argv[])
 
 usage:
     fprintf(stderr,
-            "Usage: %s test -d DEVICE\n"
-            "   or: %s init -d DEVICE [-f]\n"
-            "   or: %s show -d DEVICE [-s SLOT]\n"
-            "   or: %s save -d DEVICE [-s SLOT]  -u UUID  < DATA\n"
-            "   or: %s load -d DEVICE  -s SLOT  [-u UUID] > DATA\n"
-            "   or: %s wipe -d DEVICE  -s SLOT  [-u UUID] [-f]\n",
-            argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
+            "Usage: luksmeta test -d DEVICE\n"
+            "   or: luksmeta nuke -d DEVICE [-f]\n"
+            "   or: luksmeta init -d DEVICE [-f] [-n]\n"
+            "   or: luksmeta show -d DEVICE [-s SLOT]\n"
+            "   or: luksmeta save -d DEVICE [-s SLOT]  -u UUID  < DATA\n"
+            "   or: luksmeta load -d DEVICE  -s SLOT  [-u UUID] > DATA\n"
+            "   or: luksmeta wipe -d DEVICE  -s SLOT  [-u UUID] [-f]\n");
     return EX_USAGE;
 }
