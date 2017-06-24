@@ -42,10 +42,17 @@ The end result looks like this on disk:
 Destroy all data (including LUKSMeta data) in the LUKSv1 header gap and
 initalize the gap for LUKSMeta storage:
 
-    $ luksmeta init -n -f -d /dev/sdz
+    $ luksmeta init -n -d /dev/sdz
+    You are about to initialize a LUKS device for metadata storage.
+    Attempting to initialize it may result in data loss if data was
+    already written into the LUKS header gap in a different format.
+    A backup is advised before initialization is performed.
+
+    Do you wish to initialize /dev/sdz? [yn] y
 
 If already initialized, do nothing. Otherwise, destroy all non-LUKSMeta data
-in the LUKSv1 header gap and initialize the gap for LUKSMeta storage:
+in the LUKSv1 header gap and initialize the gap for LUKSMeta storage. Skip
+user confirmation (dangerous!):
 
     $ luksmeta init -f -d /dev/sdz
 
@@ -67,7 +74,11 @@ Wipe the data from the slot:
 
 Erase all trace of LUKSMeta:
 
-    $ luksmeta nuke -f -d /dev/sdz
+    $ luksmeta nuke -d /dev/sdz
+    You are about to erase all data in the LUKSMeta storage area.
+    A backup is advised before erasure is performed.
+
+    Do you wish to nuke /dev/sdz? [yn] y
 
 [usbguard]: https://github.com/dkopecek/usbguard
 [tang]: https://github.com/latchset/tang
