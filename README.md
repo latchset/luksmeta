@@ -29,19 +29,13 @@ The end result looks like this on disk:
 
 ## LUKSMeta Command Line Interface
 
-`luksmeta test` -d DEVICE
-
-`luksmeta nuke` -d DEVICE [-f]
-
-`luksmeta init` -d DEVICE [-f] [-n]
-
-`luksmeta show` -d DEVICE [-s SLOT]
-
-`luksmeta save` -d DEVICE [-s SLOT]  -u UUID  < DATA
-
-`luksmeta load` -d DEVICE  -s SLOT  [-u UUID] > DATA
-
-`luksmeta wipe` -d DEVICE  -s SLOT  [-u UUID] [-f]
+    luksmeta test -d DEVICE
+    luksmeta nuke -d DEVICE [-f]
+    luksmeta init -d DEVICE [-f] [-n]
+    luksmeta show -d DEVICE [-s SLOT]
+    luksmeta save -d DEVICE [-s SLOT]  -u UUID  < DATA
+    luksmeta load -d DEVICE  -s SLOT  [-u UUID] > DATA
+    luksmeta wipe -d DEVICE  -s SLOT  [-u UUID] [-f]
 
 ### Examples
 
