@@ -487,7 +487,7 @@ main(int argc, char *argv[])
 
         r = crypt_load(cd, NULL, NULL);
         if (r != 0) {
-            fprintf(stderr, "Unable to load device (%s): %s\n",
+            fprintf(stderr, "Unable to read LUKSv1 header (%s): %s\n",
                     o.device, strerror(-r));
             crypt_free(cd);
             return EX_IOERR;
@@ -502,7 +502,7 @@ main(int argc, char *argv[])
         }
 
         if (strcmp(type, CRYPT_LUKS1) != 0) {
-            fprintf(stderr, "%s (%s) is not a LUKS device\n", o.device, type);
+            fprintf(stderr, "%s (%s) is not a LUKSv1 device\n", o.device, type);
             crypt_free(cd);
             return EX_OSFILE;
         }
