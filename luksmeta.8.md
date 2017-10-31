@@ -1,4 +1,4 @@
-luksmeta(1) -- Utility for storing metadata in a LUKSv1 header
+luksmeta(8) -- Utility for storing metadata in a LUKSv1 header
 ==============================================================
 
 ## SYNOPSIS
