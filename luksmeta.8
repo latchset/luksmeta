@@ -130,7 +130,7 @@ This command uses the return values as defined by \fBsysexit\.h\fR\. The followi
 \fBEX_NOPERM\fR : The user did not grant permission during confirmation\.
 .
 .IP "\(bu" 4
-\fBEX_NOINPUT\fR : An error occured while reading from standard input\.
+\fBEX_NOINPUT\fR : An error occurred while reading from standard input\.
 .
 .IP "\(bu" 4
 \fBEX_DATAERR\fR : The specified UUID does not match the slot UUID\.
@@ -144,7 +144,7 @@ This command uses the return values as defined by \fBsysexit\.h\fR\. The followi
 Additionally, \fBluksmeta save\fR will return \fBEX_UNAVAILABLE\fR when you attempt to save data into a slot that is already used\. Likewise, \fBluksmeta load\fR will return \fBEX_UNAVAILABLE\fR when you attempt to read from an empty slot\.
 .
 .SH "EXAMPLES"
-Destroy all data (including LUKSMeta data) in the LUKSv1 header gap and initalize the gap for LUKSMeta storage:
+Destroy all data (including LUKSMeta data) in the LUKSv1 header gap and initialize the gap for LUKSMeta storage:
 .
 .IP "" 4
 .

@@ -172,7 +172,7 @@ are general errors whose meaning is shared by all `luksmeta` commands:
 * `EX_IOERR`     : An IO error occurred when writing to the device.
 * `EX_OSFILE`    : The device is not initialized or is corrupted.
 * `EX_NOPERM`    : The user did not grant permission during confirmation.
-* `EX_NOINPUT`   : An error occured while reading from standard input.
+* `EX_NOINPUT`   : An error occurred while reading from standard input.
 * `EX_DATAERR`   : The specified UUID does not match the slot UUID.
 * `EX_CANTCREAT` : There is insufficient space in LUKSv1 header.
 
@@ -183,7 +183,7 @@ return `EX_UNAVAILABLE` when you attempt to read from an empty slot.
 ## EXAMPLES
 
 Destroy all data (including LUKSMeta data) in the LUKSv1 header gap and
-initalize the gap for LUKSMeta storage:
+initialize the gap for LUKSMeta storage:
 
     $ luksmeta init -n -f -d /dev/sdz
 
