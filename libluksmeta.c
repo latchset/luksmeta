@@ -119,6 +119,8 @@ readall(int fd, void *data, size_t size)
         r = read(fd, &tmp[t], size - t);
         if (r < 0 && errno != EAGAIN)
             return -errno;
+        if (r == 0)
+            return -ENOENT;
     }
 
     return size;
