@@ -1,232 +1,346 @@
-.\" generated with Ronn/v0.7.3
-.\" http://github.com/rtomayko/ronn/tree/0.7.3
-.
-.TH "LUKSMETA" "8" "October 2017" "" ""
-.
+'\" t
+.\"     Title: luksmeta
+.\"    Author: [see the "AUTHOR" section]
+.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\"      Date: 07/10/2018
+.\"    Manual: \ \&
+.\"    Source: \ \&
+.\"  Language: English
+.\"
+.TH "LUKSMETA" "8" "07/10/2018" "\ \&" "\ \&"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
 .SH "NAME"
-\fBluksmeta\fR \- Utility for storing metadata in a LUKSv1 header
-.
+luksmeta \- Utility for storing metadata in a LUKSv1 header
 .SH "SYNOPSIS"
+.sp
 \fBluksmeta test\fR \-d DEVICE
-.
-.P
+.sp
 \fBluksmeta nuke\fR \-d DEVICE [\-f]
-.
-.P
+.sp
 \fBluksmeta init\fR \-d DEVICE [\-f] [\-n]
-.
-.P
+.sp
 \fBluksmeta show\fR \-d DEVICE [\-s SLOT]
-.
-.P
-\fBluksmeta save\fR \-d DEVICE [\-s SLOT] \-u UUID \fIDATA\fR
-.
-.P
-\fBluksmeta load\fR \-d DEVICE \-s SLOT [\-u UUID] DATA
-.
-.P
+.sp
+\fBluksmeta save\fR \-d DEVICE [\-s SLOT] \-u UUID < DATA
+.sp
+\fBluksmeta load\fR \-d DEVICE \-s SLOT [\-u UUID] > DATA
+.sp
 \fBluksmeta wipe\fR \-d DEVICE \-s SLOT [\-u UUID] [\-f]
-.
 .SH "OVERVIEW"
-The \fBluksmeta\fR utility enables an administrator to store metadata in the gap between the end of the LUKSv1 header and the start of the encrypted data\. This is useful for storing data that is available before the volume is unlocked, usually for use during the volume unlock process\.
-.
-.P
-The metadata is stored in a series of UUID\-typed slots, allowing multiple blocks of metadata\. Although the \fBluksmeta\fR slots are inspired by the LUKS slots, they are functionally independent and share only a casual relationship\. Slots merely provide a hint that a given chunk of metadata is associated with a specific LUKSv1 password (in a slot with the same number)\. However, \fBluksmeta\fR itself is indifferent to the relationship between a LUKSv1 slot and the correspondly numbered \fBluksmeta\fR slot, with one exception (detailed below)\.
-.
-.P
-After a LUKSv1 volume is initialized using \fBcryptsetup\fR(8), it must also be initialized for metadata storage by \fBluksmeta init\fR\. Once this is complete, the device is ready to store medata\.
-.
-.P
-Data can be written to a slot using \fBluksmeta save\fR or read from a slot using \fBluksmeta load\fR\. You can also erase the data in an existing slot using \fBluksmeta wipe\fR or query the slots using \fBluksmeta show\fR\.
-.
+.sp
+The \fBluksmeta\fR utility enables an administrator to store metadata in the gap between the end of the LUKSv1 header and the start of the encrypted data\&. This is useful for storing data that is available before the volume is unlocked, usually for use during the volume unlock process\&.
+.sp
+The metadata is stored in a series of UUID\-typed slots, allowing multiple blocks of metadata\&. Although the \fBluksmeta\fR slots are inspired by the LUKS slots, they are functionally independent and share only a casual relationship\&. Slots merely provide a hint that a given chunk of metadata is associated with a specific LUKSv1 password (in a slot with the same number)\&. However, \fBluksmeta\fR itself is indifferent to the relationship between a LUKSv1 slot and the correspondly numbered \fBluksmeta\fR slot, with one exception (detailed below)\&.
+.sp
+After a LUKSv1 volume is initialized using \fBcryptsetup\fR(8), it must also be initialized for metadata storage by \fBluksmeta init\fR\&. Once this is complete, the device is ready to store medata\&.
+.sp
+Data can be written to a slot using \fBluksmeta save\fR or read from a slot using \fBluksmeta load\fR\&. You can also erase the data in an existing slot using \fBluksmeta wipe\fR or query the slots using \fBluksmeta show\fR\&.
 .SH "UUID GENERATION"
-It is often presumed that saving metadata to a slot requires a specific UUID or that there is an official registry of UUID types\. This is incorrect\.
-.
-.P
-UUID stands for Universally Unique IDentifier\. UUIDs are a standardized, widely\-used data type used for identification without a central registry\. For the relevant standards, see ISO 9834\-8:2005 and RFC 4122\.
-.
-.P
-UUIDs are large enough that collision is practically impossible\. So if your application wants to store data in a \fBluksmeta\fR slot, just generate your own UUID and use it consistently to refer to your type of data\. If you have multiple types of data, feel free to generate multiple UUIDs\.
-.
-.P
-The easiest way to generate a UUID is to use \fBuuidgen\fR(1)\. However, any compliant UUID generator will suffice\.
-.
+.sp
+It is often presumed that saving metadata to a slot requires a specific UUID or that there is an official registry of UUID types\&. This is incorrect\&.
+.sp
+UUID stands for Universally Unique IDentifier\&. UUIDs are a standardized, widely\-used data type used for identification without a central registry\&. For the relevant standards, see ISO 9834\-8:2005 and RFC 4122\&.
+.sp
+UUIDs are large enough that collision is practically impossible\&. So if your application wants to store data in a \fBluksmeta\fR slot, just generate your own UUID and use it consistently to refer to your type of data\&. If you have multiple types of data, feel free to generate multiple UUIDs\&.
+.sp
+The easiest way to generate a UUID is to use \fBuuidgen\fR(1)\&. However, any compliant UUID generator will suffice\&.
 .SH "INITIALIZATION"
-Before reading or writing metadata, the LUKSv1 block device must be initialized for metadata storage\. Three commands help with this process: \fBluksmeta test\fR, \fBluksmeta nuke\fR and \fBluksmeta init\fR\.
-.
-.P
-The \fBluksmeta test\fR command simply checks an existing block device to see if it is initialized for metadata storage\. This command does not provide any output, so be sure to check its return code (see below)\.
-.
-.P
-The \fBluksmeta nuke\fR command will zero (erase) the entire LUKSv1 header gap\. Since this operation is destructive, user confirmation will be required before clearing the gap unless the \fB\-f\fR option is supplied\.
-.
-.P
-The \fBluksmeta init\fR command initializes the LUKSv1 block device for metadata storage\. This process will wipe out any data in the LUKSv1 header gap\. For this reason, this command will require user confirmation before any data is written unless the \fB\-f\fR option is supplied\. Note that this command succeeds without any modification if the device is already initialized\. If you would like to force the creation of clean initialization state, you can specify the \fB\-n\fR option to nuke the LUKSv1 header gap before initialization (but after user confirmation)\.
-.
+.sp
+Before reading or writing metadata, the LUKSv1 block device must be initialized for metadata storage\&. Three commands help with this process: \fBluksmeta test\fR, \fBluksmeta nuke\fR and \fBluksmeta init\fR\&.
+.sp
+The \fBluksmeta test\fR command simply checks an existing block device to see if it is initialized for metadata storage\&. This command does not provide any output, so be sure to check its return code (see below)\&.
+.sp
+The \fBluksmeta nuke\fR command will zero (erase) the entire LUKSv1 header gap\&. Since this operation is destructive, user confirmation will be required before clearing the gap unless the \fB\-f\fR option is supplied\&.
+.sp
+The \fBluksmeta init\fR command initializes the LUKSv1 block device for metadata storage\&. This process will wipe out any data in the LUKSv1 header gap\&. For this reason, this command will require user confirmation before any data is written unless the \fB\-f\fR option is supplied\&. Note that this command succeeds without any modification if the device is already initialized\&. If you would like to force the creation of clean initialization state, you can specify the \fB\-n\fR option to nuke the LUKSv1 header gap before initialization (but after user confirmation)\&.
 .SH "METADATA STATE"
-The \fBluksmeta show\fR command displays the current state of slots on the LUKSv1 block device\. If no slot is specified, it prints a table consisting of the slot number, the corresponding LUKSv1 slot state and the UUID of the data stored in the \fBluksmeta\fR slot (or "empty" if no data is stored)\. If a slot is specified, this command simply prints out the UUID of the data in the slot\. If the slot does not contain data, it prints nothing\.
-.
+.sp
+The \fBluksmeta show\fR command displays the current state of slots on the LUKSv1 block device\&. If no slot is specified, it prints a table consisting of the slot number, the corresponding LUKSv1 slot state and the UUID of the data stored in the \fBluksmeta\fR slot (or "empty" if no data is stored)\&. If a slot is specified, this command simply prints out the UUID of the data in the slot\&. If the slot does not contain data, it prints nothing\&.
 .SH "MANAGING METADATA"
-Managing the metadata in the slots is performed with three commands: \fBluksmeta save\fR, \fBluksmeta load\fR and \fBluksmeta wipe\fR\. These commands write metadata to a slot, read metadata from a slot and erase metadata in a slot, respectively\.
-.
-.P
-The \fBluksmeta save\fR command reads metadata on standard input and writes it to the specified slot using the specified UUID\. If no slot is specified, \fBluksmeta\fR will search for the first slot number for which the LUKSv1 slot is inactive and the \fBluksmeta\fR slot is empty\. This represents the only official correlation between LUKSv1 slots and \fBluksmeta\fR slots\. In this case, the metadata is written to the first applicable slot using the specified UUID and the slot number is printed to standard output\. In either case, this command will never overwrite existing data\. To replace data in a slot you will need to execute \fBluksmeta wipe\fR before \fBluksmeta save\fR\.
-.
-.P
-The \fBluksmeta load\fR command reads data from the specified slot and writes it to standard output\. If a UUID is specified, the command will verify that the UUID associated with the metadata in the slot matches the specified UUID\. This type check helps to ensure that you always receive the type of data you are expecting as output\. If the UUIDs do not match, the command will fail\.
-.
-.P
-The \fBluksmeta wipe\fR command erases the data from the given slot\. If a UUID is specified, the command will verify that the UUID associated with the metadata in the slot matches the specified UUID\. This type check helps to ensure that you only erase the data you intended to erase\. Because this is a destructive operation, this command will require user confirmation before any data is erased, unless the \fB\-f\fR option is supplied\. Note that this command succeeds if you attempt to wipe a slot that is already empty\.
-.
+.sp
+Managing the metadata in the slots is performed with three commands: \fBluksmeta save\fR, \fBluksmeta load\fR and \fBluksmeta wipe\fR\&. These commands write metadata to a slot, read metadata from a slot and erase metadata in a slot, respectively\&.
+.sp
+The \fBluksmeta save\fR command reads metadata on standard input and writes it to the specified slot using the specified UUID\&. If no slot is specified, \fBluksmeta\fR will search for the first slot number for which the LUKSv1 slot is inactive and the \fBluksmeta\fR slot is empty\&. This represents the only official correlation between LUKSv1 slots and \fBluksmeta\fR slots\&. In this case, the metadata is written to the first applicable slot using the specified UUID and the slot number is printed to standard output\&. In either case, this command will never overwrite existing data\&. To replace data in a slot you will need to execute \fBluksmeta wipe\fR before \fBluksmeta save\fR\&.
+.sp
+The \fBluksmeta load\fR command reads data from the specified slot and writes it to standard output\&. If a UUID is specified, the command will verify that the UUID associated with the metadata in the slot matches the specified UUID\&. This type check helps to ensure that you always receive the type of data you are expecting as output\&. If the UUIDs do not match, the command will fail\&.
+.sp
+The \fBluksmeta wipe\fR command erases the data from the given slot\&. If a UUID is specified, the command will verify that the UUID associated with the metadata in the slot matches the specified UUID\&. This type check helps to ensure that you only erase the data you intended to erase\&. Because this is a destructive operation, this command will require user confirmation before any data is erased, unless the \fB\-f\fR option is supplied\&. Note that this command succeeds if you attempt to wipe a slot that is already empty\&.
 .SH "CAVEATS"
-The amount of storage in the LUKSv1 header gap is extremely limited\. It also varies based upon the configuration used by LUKSv1 at device initialization time\. In some LUKSv1 configurations, there is not even enough space for all the metadata slots even at the smallest possible slot size\.
-.
-.P
-During the design of this utility, we considered it likely that users would want to reduce the number of usable slots in exchange for more storage space in the slots used\. In order to provide this flexibility, the amount of storage available per\-slot is dynamic\. Put simply, slots are not a fixed size\. This means that it is possible (and even somewhat likely) to encounter an error during \fBluksmeta save\fR indicating that there is insufficient space\.
-.
-.P
-This error is not a programming bug\. If you encounter this error it likely means that either all space is being consumed by the already\-written slots or that the metadata you are attempting to write simply does not fit\.
-.
-.P
-You can attempt to resolve this problem by calling \fBluksmeta wipe\fR on slots that are no longer in use\. This will release the storage space for use by other slots\. Note that \fBluksmeta\fR does not, however, currently perform defragmentation since the number of usable blocks is rather limited\. You can attempt to manually get around this by extracting all slot data, wiping the slots and reloading them in order\. However, this operation is potentially dangerous and should be undertaken with great care\.
-.
+.sp
+The amount of storage in the LUKSv1 header gap is extremely limited\&. It also varies based upon the configuration used by LUKSv1 at device initialization time\&. In some LUKSv1 configurations, there is not even enough space for all the metadata slots even at the smallest possible slot size\&.
+.sp
+During the design of this utility, we considered it likely that users would want to reduce the number of usable slots in exchange for more storage space in the slots used\&. In order to provide this flexibility, the amount of storage available per\-slot is dynamic\&. Put simply, slots are not a fixed size\&. This means that it is possible (and even somewhat likely) to encounter an error during \fBluksmeta save\fR indicating that there is insufficient space\&.
+.sp
+This error is not a programming bug\&. If you encounter this error it likely means that either all space is being consumed by the already\-written slots or that the metadata you are attempting to write simply does not fit\&.
+.sp
+You can attempt to resolve this problem by calling \fBluksmeta wipe\fR on slots that are no longer in use\&. This will release the storage space for use by other slots\&. Note that \fBluksmeta\fR does not, however, currently perform defragmentation since the number of usable blocks is rather limited\&. You can attempt to manually get around this by extracting all slot data, wiping the slots and reloading them in order\&. However, this operation is potentially dangerous and should be undertaken with great care\&.
 .SH "OPTIONS"
-.
-.TP
-\fB\-d\fR \fIDEVICE\fR, \fB\-\-device\fR=\fIDEVICE\fR
-The device on which to perform the operation\.
-.
-.TP
-\fB\-s\fR \fISLOT\fR, \fB\-\-slot\fR=\fISLOT\fR
-The slot number on which to perform the operation\.
-.
-.TP
-\fB\-u\fR \fIUUID\fR, \fB\-\-uuid\fR=\fIUUID\fR
-The UUID to associate with the operation\.
-.
-.TP
-\fB\-f\fR, \fB\-\-force\fR
-Forcibly suppress all user prompting\.
-.
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fB\-d\fR
+\fIDEVICE\fR,
+\fB\-\-device\fR=\fIDEVICE\fR
+: The device on which to perform the operation\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fB\-s\fR
+\fISLOT\fR,
+\fB\-\-slot\fR=\fISLOT\fR
+: The slot number on which to perform the operation\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fB\-u\fR
+\fIUUID\fR,
+\fB\-\-uuid\fR=\fIUUID\fR
+: The UUID to associate with the operation\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fB\-f\fR,
+\fB\-\-force\fR
+: Forcibly suppress all user prompting\&.
+.RE
 .SH "RETURN VALUES"
-This command uses the return values as defined by \fBsysexit\.h\fR\. The following are general errors whose meaning is shared by all \fBluksmeta\fR commands:
-.
-.IP "\(bu" 4
-\fBEX_OK\fR : The operation was successful\.
-.
-.IP "\(bu" 4
-\fBEX_OSERR\fR : An undefined operating system error occurred\.
-.
-.IP "\(bu" 4
-\fBEX_USAGE\fR : The program was called with invalid parameters\.
-.
-.IP "\(bu" 4
-\fBEX_IOERR\fR : An IO error occurred when writing to the device\.
-.
-.IP "\(bu" 4
-\fBEX_OSFILE\fR : The device is not initialized or is corrupted\.
-.
-.IP "\(bu" 4
-\fBEX_NOPERM\fR : The user did not grant permission during confirmation\.
-.
-.IP "\(bu" 4
-\fBEX_NOINPUT\fR : An error occurred while reading from standard input\.
-.
-.IP "\(bu" 4
-\fBEX_DATAERR\fR : The specified UUID does not match the slot UUID\.
-.
-.IP "\(bu" 4
-\fBEX_CANTCREAT\fR : There is insufficient space in LUKSv1 header\.
-.
-.IP "" 0
-.
-.P
-Additionally, \fBluksmeta save\fR will return \fBEX_UNAVAILABLE\fR when you attempt to save data into a slot that is already used\. Likewise, \fBluksmeta load\fR will return \fBEX_UNAVAILABLE\fR when you attempt to read from an empty slot\.
-.
+.sp
+This command uses the return values as defined by \fBsysexit\&.h\fR\&. The following are general errors whose meaning is shared by all \fBluksmeta\fR commands:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_OK\fR
+: The operation was successful\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_OSERR\fR
+: An undefined operating system error occurred\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_USAGE\fR
+: The program was called with invalid parameters\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_IOERR\fR
+: An IO error occurred when writing to the device\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_OSFILE\fR
+: The device is not initialized or is corrupted\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_NOPERM\fR
+: The user did not grant permission during confirmation\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_NOINPUT\fR
+: An error occurred while reading from standard input\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_DATAERR\fR
+: The specified UUID does not match the slot UUID\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBEX_CANTCREAT\fR
+: There is insufficient space in LUKSv1 header\&.
+.RE
+.sp
+Additionally, \fBluksmeta save\fR will return \fBEX_UNAVAILABLE\fR when you attempt to save data into a slot that is already used\&. Likewise, \fBluksmeta load\fR will return \fBEX_UNAVAILABLE\fR when you attempt to read from an empty slot\&.
 .SH "EXAMPLES"
+.sp
 Destroy all data (including LUKSMeta data) in the LUKSv1 header gap and initialize the gap for LUKSMeta storage:
-.
-.IP "" 4
-.
+.sp
+.if n \{\
+.RS 4
+.\}
 .nf
-
 $ luksmeta init \-n \-f \-d /dev/sdz
-.
 .fi
-.
-.IP "" 0
-.
-.P
-If already initialized, do nothing\. Otherwise, destroy all non\-LUKSMeta data in the LUKSv1 header gap and initialize the gap for LUKSMeta storage:
-.
-.IP "" 4
-.
+.if n \{\
+.RE
+.\}
+.sp
+If already initialized, do nothing\&. Otherwise, destroy all non\-LUKSMeta data in the LUKSv1 header gap and initialize the gap for LUKSMeta storage:
+.sp
+.if n \{\
+.RS 4
+.\}
 .nf
-
 $ luksmeta init \-f \-d /dev/sdz
-.
 .fi
-.
-.IP "" 0
-.
-.P
+.if n \{\
+.RE
+.\}
+.sp
 Write some data to a slot:
-.
-.IP "" 4
-.
+.sp
+.if n \{\
+.RS 4
+.\}
 .nf
-
-$ UUID=`uuidgen`
+$ UUID=*uuidgen*
 $ echo $UUID
 31c25e3b\-b8e2\-4eaa\-a427\-23aa882feef2
 $ echo "Hello, World" | luksmeta save \-d /dev/sdz \-s 0 \-u $UUID
-.
 .fi
-.
-.IP "" 0
-.
-.P
+.if n \{\
+.RE
+.\}
+.sp
 Read the data back:
-.
-.IP "" 4
-.
+.sp
+.if n \{\
+.RS 4
+.\}
 .nf
-
 $ luksmeta load \-d /dev/sdz \-s 0 \-u $UUID
 Hello, World
-.
 .fi
-.
-.IP "" 0
-.
-.P
+.if n \{\
+.RE
+.\}
+.sp
 Wipe the data from the slot:
-.
-.IP "" 4
-.
+.sp
+.if n \{\
+.RS 4
+.\}
 .nf
-
 $ luksmeta wipe \-d /dev/sdz \-s 0 \-u $UUID
-.
 .fi
-.
-.IP "" 0
-.
-.P
+.if n \{\
+.RE
+.\}
+.sp
 Erase all trace of LUKSMeta:
-.
-.IP "" 4
-.
+.sp
+.if n \{\
+.RS 4
+.\}
 .nf
-
 $ luksmeta nuke \-f \-d /dev/sdz
-.
 .fi
-.
-.IP "" 0
-.
+.if n \{\
+.RE
+.\}
 .SH "AUTHOR"
-Nathaniel McCallum <npmccallum@redhat\.com>
-.
+.sp
+Nathaniel McCallum <npmccallum@redhat\&.com>
 .SH "SEE ALSO"
+.sp
 \fBcryptsetup\fR(8), \fBuuidgen\fR(1)
