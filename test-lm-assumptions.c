@@ -28,7 +28,8 @@ main(int argc, char *argv[])
     /* Test the layout state. */
     assert(test_layout((range_t[]) {
         { 0, 1024 },                    /* LUKS header */
-        END(1024),                    /* Rest of the file */
+        { 1024, 3072, true },           /* Keyslot Area */
+        { 0, 0 },
     }));
 
     unlink(filename);
