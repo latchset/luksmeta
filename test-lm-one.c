@@ -49,7 +49,7 @@ main(int argc, char *argv[])
     /* Test the layout state. */
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
-        { 1024, offset - 1024, true }, /* Keyslot Area */
+        { 1024, 3072, true },          /* Keyslot Area */
         { offset, 4096 },              /* luksmeta header */
         { offset + 4096, 4096 },       /* luksmeta slot 0 */
         END(offset + 8192),            /* Rest of the file */
@@ -68,7 +68,7 @@ main(int argc, char *argv[])
     /* Test the layout state. */
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
-        { 1024, offset - 1024, true }, /* Keyslot Area */
+        { 1024, 3072, true },          /* Keyslot Area */
         { offset, 4096 },              /* luksmeta header */
         END(offset + 4096),            /* Rest of the file */
     }));

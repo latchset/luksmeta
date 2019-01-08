@@ -53,7 +53,7 @@ main(int argc, char *argv[])
 
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
-        { 1024, offset - 1024, true }, /* Keyslot Area */
+        { 1024, 3072, true },          /* Keyslot Area */
         { offset, 4096 },              /* luksmeta header */
         { offset + 4096, 4096 },       /* luksmeta slot 0 */
         END(offset + 8192),            /* Rest of the file */
@@ -70,7 +70,7 @@ main(int argc, char *argv[])
 
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
-        { 1024, offset - 1024, true }, /* Keyslot Area */
+        { 1024, 3072, true },          /* Keyslot Area */
         { offset, 4096 },              /* luksmeta header */
         { offset + 4096, 4096 },       /* luksmeta slot 0 */
         { offset + 8192, 4096 },       /* luksmeta slot 1 */
@@ -88,7 +88,7 @@ main(int argc, char *argv[])
     assert(luksmeta_wipe(cd, 0, UUID0) == 0);
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
-        { 1024, offset - 1024, true }, /* Keyslot Area */
+        { 1024, 3072, true },          /* Keyslot Area */
         { offset, 4096 },              /* luksmeta header */
         { offset + 4096, 4096, true }, /* luksmeta slot 0 */
         { offset + 8192, 4096 },       /* luksmeta slot 1 */
@@ -99,7 +99,7 @@ main(int argc, char *argv[])
     assert(luksmeta_wipe(cd, 1, UUID1) == 0);
     assert(test_layout((range_t[]) {
         { 0, 1024 },                   /* LUKS header */
-        { 1024, offset - 1024, true }, /* Keyslot Area */
+        { 1024, 3072, true },          /* Keyslot Area */
         { offset, 4096 },              /* luksmeta header */
         END(offset + 4096),            /* Rest of the file */
     }));
