@@ -45,6 +45,17 @@ struct options {
     int slot;
 };
 
+#define LUKSMETA_LIBCRYPTSETUP_LOG_LEVEL CRYPT_LOG_ERROR
+
+static void
+luksmeta_libcryptsetup_log(int level, const char *msg, void *usrptr)
+{
+    if (level != LUKSMETA_LIBCRYPTSETUP_LOG_LEVEL) {
+       return;
+    }
+    fprintf(stderr, "%s", msg);
+}
+
 static int
 cmd_test(const struct options *opts, struct crypt_device *cd)
 {
@@ -484,6 +495,8 @@ main(int argc, char *argv[])
                     o.device, strerror(-r));
             return EX_IOERR;
         }
+
+        crypt_set_log_callback(cd, luksmeta_libcryptsetup_log, NULL);
 
         r = crypt_load(cd, NULL, NULL);
         if (r != 0) {
