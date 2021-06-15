@@ -168,18 +168,19 @@ dangerous and should be undertaken with great care.
 
 == RETURN VALUES
 
-This command uses the return values as defined by *sysexit.h*. The following
-are general errors whose meaning is shared by all *luksmeta* commands:
+This command uses the return values as defined by *sysexits.h*. The following
+are general errors (and corresponding numeric exit codes) whose meaning is
+shared by all *luksmeta* commands:
 
-* *EX_OK*        : The operation was successful.
-* *EX_OSERR*     : An undefined operating system error occurred.
-* *EX_USAGE*     : The program was called with invalid parameters.
-* *EX_IOERR*     : An IO error occurred when writing to the device.
-* *EX_OSFILE*    : The device is not initialized or is corrupted.
-* *EX_NOPERM*    : The user did not grant permission during confirmation.
-* *EX_NOINPUT*   : An error occurred while reading from standard input.
-* *EX_DATAERR*   : The specified UUID does not match the slot UUID.
-* *EX_CANTCREAT* : There is insufficient space in LUKSv1 header.
+* *EX_OK*         (0): The operation was successful.
+* *EX_USAGE*     (64): The program was called with invalid parameters.
+* *EX_DATAERR*   (65): The specified UUID does not match the slot UUID.
+* *EX_NOINPUT*   (66): An error occurred while reading from standard input.
+* *EX_OSERR*     (71): An undefined operating system error occurred.
+* *EX_OSFILE*    (72): The device is not initialized or is corrupted.
+* *EX_CANTCREAT* (73): There is insufficient space in LUKSv1 header.
+* *EX_IOERR*     (74): An IO error occurred when writing to the device.
+* *EX_NOPERM*    (77): The user did not grant permission during confirmation.
 
 Additionally, *luksmeta save* will return *EX_UNAVAILABLE* when you attempt
 to save data into a slot that is already used. Likewise, *luksmeta load* will
