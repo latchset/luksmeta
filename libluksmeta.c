@@ -69,8 +69,12 @@ checksum(lm_t lm)
 }
 
 static inline bool
-overlap(const lm_t *lm, uint32_t start, size_t end)
+overlap(const lm_t *lm, uint32_t start, size_t end, uint32_t hard_limit)
 {
+    /* Make sure the data fits the available area in the gap. */
+    if (end > hard_limit)
+        return true;
+
     for (int i = 0; i < LUKS_NSLOTS; i++) {
         const lm_slot_t *s = &lm->slots[i];
         uint32_t e = s->offset + s->length;
@@ -90,8 +94,13 @@ find_gap(const lm_t *lm, uint32_t length, size_t size)
 {
     size = ALIGN(size, true);
 
+    /* Make sure the data is not larger than the total available
+     * area in the gap. */
+    if (length < size)
+        return 0;
+
     for (uint32_t off = ALIGN(1, true); off < length; off += ALIGN(1, true)) {
-        if (!overlap(lm, off, off + size))
+        if (!overlap(lm, off, off + size, lm->slots[0].offset + length))
             return off;
     }
 
