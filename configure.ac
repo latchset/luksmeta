@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(luksmeta, 9)
+AC_INIT(luksmeta, 10)
 AC_CANONICAL_SYSTEM
 AC_PROG_CC_C99
 
