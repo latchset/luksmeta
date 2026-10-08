@@ -77,12 +77,13 @@ overlap(const lm_t *lm, uint32_t start, size_t end, uint32_t hard_limit)
 
     for (int i = 0; i < LUKS_NSLOTS; i++) {
         const lm_slot_t *s = &lm->slots[i];
-        uint32_t e = s->offset + s->length;
 
-        if (start <= s->offset && s->offset < end)
-            return true;
+        if (s->length == 0)
+            continue;
 
-        if (start < e && e <= end)
+        uint64_t e = (uint64_t) s->offset + s->length;
+
+        if (start < e && s->offset < end)
             return true;
     }
 
@@ -100,7 +101,7 @@ find_gap(const lm_t *lm, uint32_t length, size_t size)
         return 0;
 
     for (uint32_t off = ALIGN(1, true); off < length; off += ALIGN(1, true)) {
-        if (!overlap(lm, off, off + size, lm->slots[0].offset + length))
+        if (!overlap(lm, off, off + size, length))
             return off;
     }
 
