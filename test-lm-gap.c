@@ -18,6 +18,7 @@
  */
 
 #include "test.h"
+#include "crc32c.h"
 #include <error.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -39,6 +40,22 @@ static const luksmeta_uuid_t UUID2 = {
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33
 };
+
+/* On-disk header layout; integer fields are stored in big-endian order. */
+typedef struct __attribute__((packed)) {
+    luksmeta_uuid_t uuid;
+    uint32_t offset;
+    uint32_t length;
+    uint32_t crc32c;
+    uint32_t reserved;
+} test_slot_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t magic[8];
+    uint32_t version;
+    uint32_t crc32c;
+    test_slot_t slots[8];
+} test_header_t;
 
 /* Reset the filename template so mkstemp() in test_format() works on
  * each call.  The existing tests only call test_format() once, but we
@@ -542,9 +559,97 @@ test_reuse(void)
     unlink(filename);
 }
 
+/* Rewrite a header with a valid checksum after changing a slot range. */
+static void
+rewrite_header(uint32_t offset, test_header_t header)
+{
+    int fd = open(filename, O_RDWR);
+
+    assert(fd >= 0);
+    header.crc32c = 0;
+    header.crc32c = htobe32(crc32c(0, &header, sizeof(header)));
+    assert(lseek(fd, offset, SEEK_SET) != -1);
+    assert(write(fd, &header, sizeof(header)) == sizeof(header));
+    assert(close(fd) == 0);
+}
+
+/* A checksum-valid occupied slot must not direct I/O outside the gap. */
+static void
+test_invalid_range(int scenario)
+{
+    struct crypt_device *cd = NULL;
+    luksmeta_uuid_t uuid = {};
+    test_header_t header;
+    struct stat before_stat, after_stat;
+    uint32_t offset = 0;
+    uint32_t length = 0;
+    uint32_t slot_offset;
+    uint8_t data[16];
+    uint8_t sentinel[4096];
+    uint8_t *before, *after;
+    int fd;
+
+    reset_filename();
+    crypt_free(test_format());
+    cd = test_init();
+    test_hole(cd, &offset, &length);
+    assert(length >= 12288);
+    assert(sizeof(data) <= length - ALIGN(sizeof(header), true));
+
+    memset(data, 'D', sizeof(data));
+    assert(luksmeta_save(cd, 0, UUID0, data, sizeof(data)) == 0);
+
+    fd = open(filename, O_RDWR);
+    assert(fd >= 0);
+    assert(lseek(fd, offset, SEEK_SET) != -1);
+    assert(read(fd, &header, sizeof(header)) == sizeof(header));
+    memset(sentinel, 'P', sizeof(sentinel));
+    assert(lseek(fd, (off_t) offset + length, SEEK_SET) != -1);
+    assert(write(fd, sentinel, sizeof(sentinel)) == sizeof(sentinel));
+    assert(close(fd) == 0);
+
+    /* Prove the mutation/checksum helper produces an accepted header. */
+    header.slots[0].offset = htobe32(length - sizeof(data));
+    rewrite_header(offset, header);
+    assert(luksmeta_test(cd) == 0);
+    assert(luksmeta_load(cd, 0, uuid, NULL, 0) == sizeof(data));
+
+    /* Inside-but-crossing, at the boundary, and a wrapping endpoint. */
+    slot_offset = scenario == 0 ? length - 1 :
+                  scenario == 1 ? length : UINT32_MAX - 7;
+    assert(slot_offset > sizeof(header));
+    assert((uint64_t) slot_offset + sizeof(data) > length);
+    if (scenario == 2)
+        assert((uint64_t) slot_offset + sizeof(data) > UINT32_MAX);
+    header.slots[0].offset = htobe32(slot_offset);
+    rewrite_header(offset, header);
+
+    assert(stat(filename, &before_stat) == 0);
+    before = read_image(0, before_stat.st_size);
+
+    /* Validation must reject the header even without seeking to slot data. */
+    assert(luksmeta_test(cd) == -EINVAL);
+    assert(luksmeta_load(cd, 0, uuid, NULL, 0) == -EINVAL);
+    assert(luksmeta_load(cd, 0, uuid, data, sizeof(data)) == -EINVAL);
+    assert(luksmeta_save(cd, 1, UUID1, data, sizeof(data)) == -EINVAL);
+    assert(luksmeta_wipe(cd, 0, UUID0) == -EINVAL);
+
+    assert(stat(filename, &after_stat) == 0);
+    assert(after_stat.st_size == before_stat.st_size);
+    after = read_image(0, after_stat.st_size);
+    assert(memcmp(before, after, before_stat.st_size) == 0);
+    free(before);
+    free(after);
+    crypt_free(cd);
+    unlink(filename);
+}
+
 int
 main(int argc, char *argv[])
 {
+    test_invalid_range(0);
+    test_invalid_range(1);
+    test_invalid_range(2);
     test_bug1();
     test_control();
     test_bug2();

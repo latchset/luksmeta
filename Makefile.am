@@ -41,7 +41,7 @@ test_lm_init_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_one_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_two_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
 test_lm_big_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
-test_lm_gap_LDADD = libtest.la libluksmeta.la @cryptsetup_LIBS@
+test_lm_gap_LDADD = libtest.la libluksmeta.la libcrc32c.la @cryptsetup_LIBS@
 
 EXTRA_DIST = $(man_ADOC_FILES) test-luksmeta
 TESTS = $(check_PROGRAMS) test-luksmeta
