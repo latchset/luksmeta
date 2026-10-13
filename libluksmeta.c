@@ -265,6 +265,10 @@ read_header(struct crypt_device *cd, int flags, uint32_t *length, lm_t *lm)
             r = s->length <= maxlen ? 0 : -EINVAL;
             if (r < 0)
                 goto error;
+
+            r = (uint64_t) s->offset + s->length <= *length ? 0 : -EINVAL;
+            if (r < 0)
+                goto error;
         }
     }
 
