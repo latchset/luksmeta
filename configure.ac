@@ -3,7 +3,7 @@ AC_INIT(luksmeta, 11)
 AC_CANONICAL_SYSTEM
 AC_PROG_CC_C99
 
-AM_INIT_AUTOMAKE([subdir-objects foreign no-dist-gzip dist-bzip2 parallel-tests])
+AM_INIT_AUTOMAKE([subdir-objects foreign no-dist-gzip dist-bzip2 parallel-tests tar-pax])
 AM_SILENT_RULES([yes])
 AM_PROG_CC_C_O
 
